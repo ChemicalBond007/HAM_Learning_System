@@ -25,12 +25,33 @@
             padding: 25px 30px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative; /* For language switcher positioning */
+        }
+
+        /* --- 语言切换器 --- */
+        #lang-switcher {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #546e7a;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        #lang-switcher:hover {
+            background-color: #eceff1;
         }
 
         h1 {
             text-align: center;
             color: #1a237e;
             margin-bottom: 25px;
+            padding-top: 20px; /* Space for lang switcher */
         }
 
         /* --- 控制区域样式 --- */
@@ -56,144 +77,61 @@
 
         .btn-primary { background-color: #3949ab; color: white; }
         .btn-primary:hover { background-color: #283593; }
-
         .btn-secondary { background-color: #546e7a; color: white; }
         .btn-secondary:hover { background-color: #455a64; }
-        
         .btn-info { background-color: #0288d1; color: white; }
         .btn-info:hover { background-color: #0277bd; }
-
         .btn-danger { background-color: #d32f2f; color: white; }
         .btn-danger:hover { background-color: #c62828; }
+        .btn:disabled { background-color: #bdbdbd; cursor: not-allowed; }
 
-        .btn:disabled {
-            background-color: #bdbdbd;
-            cursor: not-allowed;
-        }
-
-        /* --- 答题区域样式 --- */
-        .quiz-area {
-            display: none; /* 默认隐藏 */
-        }
-
-        #progress {
-            font-size: 14px;
-            color: #555;
-            text-align: right;
-            margin-bottom: 15px;
-        }
-
-        #question {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-        
-        .question-type {
-            color: #3949ab;
-            font-weight: bold;
-            font-size: 16px;
-            margin-right: 10px;
-        }
-
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .option {
-            display: block;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .option input {
-            margin-right: 12px;
-            transform: scale(1.2);
-            vertical-align: middle;
-        }
-
-        .option:hover {
-            background-color: #e8eaf6;
-            border-color: #3949ab;
-        }
-
-        .option.correct { background-color: #e8f5e9; border-color: #4caf50; font-weight: bold; }
-        .option.incorrect { background-color: #ffebee; border-color: #f44336; }
-
-        #feedback {
-            margin-top: 20px; padding: 15px; border-radius: 6px;
-            font-size: 16px; font-weight: bold; text-align: center;
-        }
-        .feedback-correct { background-color: #4caf50; color: white; }
-        .feedback-incorrect { background-color: #f44336; color: white; }
-
-        .actions {
-            margin-top: 25px; display: flex; justify-content: center;
-        }
-        
+        /* --- 答题与列表视图通用样式 --- */
+        .quiz-area, .list-view { display: none; }
         .hidden { display: none; }
 
-        /* --- 新增：题库查看视图样式 --- */
-        .list-view-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        #list-view-title {
-            color: #1a237e;
-            margin: 0;
-        }
-        #list-view-content {
-            max-height: 60vh;
-            overflow-y: auto;
-            padding-right: 15px;
-        }
-        .list-item {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 15px 0;
-        }
-        .list-item:last-child {
-            border-bottom: none;
-        }
-        .list-item-question {
-            font-size: 17px;
-            font-weight: 500;
-            margin: 0 0 10px 0;
-        }
-        .list-item-options p {
-            margin: 5px 0 5px 20px;
-            color: #555;
-        }
-        .list-item-answer {
-            margin-top: 10px;
-            font-weight: bold;
-            color: #4caf50;
-        }
+        /* --- 答题区域 --- */
+        #progress { font-size: 14px; color: #555; text-align: right; margin-bottom: 15px; }
+        #question { font-size: 20px; font-weight: 600; margin-bottom: 20px; line-height: 1.6; }
+        .question-type { color: #3949ab; font-weight: bold; font-size: 16px; margin-right: 10px; }
+        .options { display: flex; flex-direction: column; gap: 15px; }
+        .option { display: block; padding: 15px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+        .option input { margin-right: 12px; transform: scale(1.2); vertical-align: middle; }
+        .option:hover { background-color: #e8eaf6; border-color: #3949ab; }
+        .option.correct { background-color: #e8f5e9; border-color: #4caf50; font-weight: bold; }
+        .option.incorrect { background-color: #ffebee; border-color: #f44336; }
+        #feedback { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; }
+        .feedback-correct { background-color: #4caf50; color: white; }
+        .feedback-incorrect { background-color: #f44336; color: white; }
+        .actions { margin-top: 25px; display: flex; justify-content: center; }
 
+        /* --- 题库查看视图 --- */
+        .list-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #list-view-title { color: #1a237e; margin: 0; }
+        #list-view-content { max-height: 60vh; overflow-y: auto; padding-right: 15px; }
+        .list-item { border-bottom: 1px solid #e0e0e0; padding: 15px 0; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item-question { font-size: 17px; font-weight: 500; margin: 0 0 10px 0; }
+        .list-item-options p { margin: 5px 0 5px 20px; color: #555; }
+        .list-item-answer { margin-top: 10px; font-weight: bold; color: #4caf50; }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <button id="lang-switcher"></button>
+        
         <!-- 主视图 -->
         <div id="main-view">
-            <h1>业余无线电台A类题库练习</h1>
+            <h1 id="main-title"></h1>
             <div class="controls" id="controls">
-                <button id="start-sequential-btn" class="btn btn-primary" disabled>顺序练习</button>
-                <button id="start-random-btn" class="btn btn-primary" disabled>随机练习</button>
-                <button id="start-wrong-btn" class="btn btn-secondary" disabled>练习错题</button>
-                <button id="view-all-btn" class="btn btn-info" disabled>查看题库</button>
-                <button id="view-wrong-btn" class="btn btn-info" disabled>查看错题</button>
-                <button id="reset-wrong-btn" class="btn btn-danger">清空错题记录</button>
+                <button id="start-sequential-btn" class="btn btn-primary" disabled></button>
+                <button id="start-random-btn" class="btn btn-primary" disabled></button>
+                <button id="start-wrong-btn" class="btn btn-secondary" disabled></button>
+                <button id="view-all-btn" class="btn btn-info" disabled></button>
+                <button id="view-wrong-btn" class="btn btn-info" disabled></button>
+                <button id="reset-wrong-btn" class="btn btn-danger"></button>
             </div>
-            <div id="status-message" style="text-align: center; padding: 10px; color: #555;">正在加载题库...</div>
+            <div id="status-message" style="text-align: center; padding: 10px; color: #555;"></div>
         </div>
 
         <!-- 答题视图 -->
@@ -203,42 +141,107 @@
             <div class="options" id="options"></div>
             <div id="feedback" class="hidden"></div>
             <div class="actions">
-                <button id="check-btn" class="btn btn-primary">核对答案</button>
-                <button id="next-btn" class="btn btn-primary hidden">下一题</button>
+                <button id="check-btn" class="btn btn-primary"></button>
+                <button id="next-btn" class="btn btn-primary hidden"></button>
             </div>
         </div>
 
         <!-- 题库查看视图 -->
-        <div id="list-view" class="hidden">
+        <div id="list-view" class="list-view">
             <div class="list-view-header">
                 <h2 id="list-view-title"></h2>
-                <button id="back-to-menu-btn" class="btn btn-primary">返回主菜单</button>
+                <button id="back-to-menu-btn" class="btn btn-primary"></button>
             </div>
             <div id="list-view-content"></div>
         </div>
     </div>
 
     <script>
+        // --- 翻译对象 ---
+        const translations = {
+            zh: {
+                lang: 'zh-CN',
+                langToggle: 'English',
+                title: '业余无线电台A类题库练习',
+                seqButton: '顺序练习',
+                randomButton: '随机练习',
+                practiceWrongButton: count => `练习错题 (${count})`,
+                viewAllButton: '查看题库',
+                viewWrongButton: count => `查看错题 (${count})`,
+                resetWrongButton: '清空错题记录',
+                loading: '正在加载题库...',
+                loadSuccess: count => `题库加载成功！共 ${count} 题。`,
+                loadFail: "<strong>题库加载失败！</strong><br>请确保 'QuestionLib.json' 文件与此HTML文件在同一目录下。",
+                progress: (current, total) => `进度: ${current} / ${total}`,
+                singleChoice: '[单选题]',
+                multiChoice: '[多选题]',
+                checkAnswer: '核对答案',
+                nextQuestion: '下一题',
+                correct: '回答正确！',
+                incorrect: answer => `回答错误！正确答案是: <strong>${answer}</strong>`,
+                quizComplete: count => `练习完成！本次共练习 ${count} 题。`,
+                allQuestionsTitle: '全部题库',
+                wrongQuestionsTitle: '我的错题集',
+                emptyList: '这里是空的！',
+                backToMenu: '返回主菜单',
+                correctAnswerLabel: '正确答案',
+                confirmReset: '确定要清空所有错题记录吗？此操作不可恢复。',
+                resetSuccess: '错题记录已清空。',
+                noWrongQuestions: '没有错题可以练习！',
+                noQuestions: '没有题目可以练习！'
+            },
+            en: {
+                lang: 'en',
+                langToggle: '中文',
+                title: 'Amateur Radio A-Class Quiz',
+                seqButton: 'Sequential Practice',
+                randomButton: 'Random Practice',
+                practiceWrongButton: count => `Practice Mistakes (${count})`,
+                viewAllButton: 'View Question Bank',
+                viewWrongButton: count => `View Mistakes (${count})`,
+                resetWrongButton: 'Clear Mistake Log',
+                loading: 'Loading question bank...',
+                loadSuccess: count => `Successfully loaded ${count} questions.`,
+                loadFail: "<strong>Failed to load question bank!</strong><br>Please ensure 'QuestionLib.json' is in the same directory as this HTML file.",
+                progress: (current, total) => `Progress: ${current} / ${total}`,
+                singleChoice: '[Single Choice]',
+                multiChoice: '[Multiple Choice]',
+                checkAnswer: 'Check Answer',
+                nextQuestion: 'Next Question',
+                correct: 'Correct!',
+                incorrect: answer => `Incorrect! The correct answer is: <strong>${answer}</strong>`,
+                quizComplete: count => `Practice complete! You attempted ${count} questions.`,
+                allQuestionsTitle: 'Full Question Bank',
+                wrongQuestionsTitle: 'My Mistakes',
+                emptyList: 'Nothing to show here!',
+                backToMenu: 'Back to Menu',
+                correctAnswerLabel: 'Correct Answer',
+                confirmReset: 'Are you sure you want to clear all mistake records? This action cannot be undone.',
+                resetSuccess: 'Mistake log has been cleared.',
+                noWrongQuestions: 'No mistakes to practice!',
+                noQuestions: 'No questions to practice!'
+            }
+        };
+
         // --- DOM 元素获取 ---
+        const langSwitcher = document.getElementById('lang-switcher');
         const mainView = document.getElementById('main-view');
         const quizAreaDiv = document.getElementById('quiz-area');
         const listView = document.getElementById('list-view');
         const statusMessage = document.getElementById('status-message');
-
+        const mainTitle = document.getElementById('main-title');
         const startSequentialBtn = document.getElementById('start-sequential-btn');
         const startRandomBtn = document.getElementById('start-random-btn');
         const startWrongBtn = document.getElementById('start-wrong-btn');
         const resetWrongBtn = document.getElementById('reset-wrong-btn');
         const viewAllBtn = document.getElementById('view-all-btn');
         const viewWrongBtn = document.getElementById('view-wrong-btn');
-        
         const progressText = document.getElementById('progress');
         const questionText = document.getElementById('question');
         const optionsDiv = document.getElementById('options');
         const feedbackDiv = document.getElementById('feedback');
         const checkBtn = document.getElementById('check-btn');
         const nextBtn = document.getElementById('next-btn');
-
         const listViewTitle = document.getElementById('list-view-title');
         const listViewContent = document.getElementById('list-view-content');
         const backToMenuBtn = document.getElementById('back-to-menu-btn');
@@ -248,15 +251,40 @@
         let currentQuestions = [];
         let currentQuestionIndex = 0;
         let wrongQuestionIds = new Set();
+        let currentLang = 'zh';
         const WRONG_QUESTIONS_KEY = 'amateurRadioWrongQuestions_A_Class';
+        const LANG_KEY = 'amateurRadioQuizLang';
 
-        // --- 函数定义 ---
+        // --- 核心函数 ---
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            
+            document.documentElement.lang = t.lang;
+            document.title = t.title;
+            langSwitcher.textContent = t.langToggle;
+            mainTitle.textContent = t.title;
+            startSequentialBtn.textContent = t.seqButton;
+            startRandomBtn.textContent = t.randomButton;
+            resetWrongBtn.textContent = t.resetWrongButton;
+            viewAllBtn.textContent = t.viewAllButton;
+            checkBtn.textContent = t.checkAnswer;
+            nextBtn.textContent = t.nextQuestion;
+            backToMenuBtn.textContent = t.backToMenu;
+            
+            // Update dynamic buttons and messages
+            updateWrongButtons();
+            if (statusMessage.textContent !== '' && !statusMessage.innerHTML.includes('<strong>')) {
+                 if (allQuestions.length > 0) {
+                    statusMessage.textContent = t.loadSuccess(allQuestions.length);
+                 }
+            }
+        }
 
         function loadWrongQuestions() {
             const saved = localStorage.getItem(WRONG_QUESTIONS_KEY);
-            if (saved) {
-                wrongQuestionIds = new Set(JSON.parse(saved));
-            }
+            if (saved) wrongQuestionIds = new Set(JSON.parse(saved));
             updateWrongButtons();
         }
 
@@ -267,39 +295,41 @@
         
         function updateWrongButtons() {
             const count = wrongQuestionIds.size;
-            startWrongBtn.textContent = `练习错题 (${count})`;
-            viewWrongBtn.textContent = `查看错题 (${count})`;
+            const t = translations[currentLang];
+            startWrongBtn.textContent = t.practiceWrongButton(count);
+            viewWrongBtn.textContent = t.viewWrongButton(count);
             startWrongBtn.disabled = count === 0;
             viewWrongBtn.disabled = count === 0;
         }
 
         async function loadQuestions() {
+            statusMessage.textContent = translations[currentLang].loading;
             try {
-                const response = await fetch('QuestionLib.json'); // <-- 文件名已修改
+                const response = await fetch('QuestionLib.json');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 allQuestions = await response.json();
-                statusMessage.textContent = `题库加载成功！共 ${allQuestions.length} 题。`;
+                statusMessage.textContent = translations[currentLang].loadSuccess(allQuestions.length);
                 startSequentialBtn.disabled = false;
                 startRandomBtn.disabled = false;
                 viewAllBtn.disabled = false;
             } catch (error) {
-                // <-- 错误提示中的文件名已同步修改
-                statusMessage.innerHTML = `<strong>题库加载失败！</strong><br>请确保 'QuestionLib.json' 文件与此HTML文件在同一目录下。<br>错误信息: ${error.message}`;
+                statusMessage.innerHTML = translations[currentLang].loadFail;
                 console.error("Failed to load questions:", error);
             }
         }
 
         function startQuiz(mode) {
+            const t = translations[currentLang];
             currentQuestionIndex = 0;
             switch(mode) {
                 case 'sequential': currentQuestions = [...allQuestions]; break;
                 case 'random': currentQuestions = [...allQuestions].sort(() => Math.random() - 0.5); break;
                 case 'wrong':
-                    if (wrongQuestionIds.size === 0) { alert("没有错题可以练习！"); return; }
+                    if (wrongQuestionIds.size === 0) { alert(t.noWrongQuestions); return; }
                     currentQuestions = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID));
                     break;
             }
-            if (currentQuestions.length === 0) { alert("没有题目可以练习！"); return; }
+            if (currentQuestions.length === 0) { alert(t.noQuestions); return; }
             mainView.classList.add('hidden');
             quizAreaDiv.style.display = 'block';
             displayQuestion();
@@ -307,6 +337,7 @@
 
         function displayQuestion() {
             if (currentQuestionIndex >= currentQuestions.length) { showSummary(); return; }
+            const t = translations[currentLang];
             feedbackDiv.classList.add('hidden');
             checkBtn.classList.remove('hidden');
             nextBtn.classList.add('hidden');
@@ -314,10 +345,10 @@
 
             const question = currentQuestions[currentQuestionIndex];
             const isMultiChoice = question.TrueAnswer.length > 1;
-            const questionTypeTag = isMultiChoice ? '[多选题]' : '[单选题]';
+            const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
             const inputType = isMultiChoice ? 'checkbox' : 'radio';
 
-            progressText.textContent = `进度: ${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+            progressText.textContent = t.progress(currentQuestionIndex + 1, currentQuestions.length);
             questionText.innerHTML = `<span class="question-type">${questionTypeTag}</span>${question.Question}`;
             
             optionsDiv.innerHTML = '';
@@ -325,9 +356,7 @@
                 const optionLabel = document.createElement('label');
                 optionLabel.className = 'option';
                 const input = document.createElement('input');
-                input.type = inputType;
-                input.name = 'option';
-                input.value = key;
+                input.type = inputType; input.name = 'option'; input.value = key;
                 optionLabel.appendChild(input);
                 optionLabel.appendChild(document.createTextNode(` ${key}. ${question.Options[key]}`));
                 optionsDiv.appendChild(optionLabel);
@@ -335,6 +364,7 @@
         }
 
         function checkAnswer() {
+            const t = translations[currentLang];
             const selectedOptions = Array.from(optionsDiv.querySelectorAll('input:checked')).map(input => input.value);
             const userAnswer = selectedOptions.sort().join('');
             const question = currentQuestions[currentQuestionIndex];
@@ -343,11 +373,11 @@
 
             feedbackDiv.classList.remove('hidden');
             if (isCorrect) {
-                feedbackDiv.textContent = '回答正确！';
+                feedbackDiv.textContent = t.correct;
                 feedbackDiv.className = 'feedback-correct';
                 if (wrongQuestionIds.has(question.J_ID)) wrongQuestionIds.delete(question.J_ID);
             } else {
-                feedbackDiv.innerHTML = `回答错误！正确答案是: <strong>${question.TrueAnswer}</strong>`;
+                feedbackDiv.innerHTML = t.incorrect(question.TrueAnswer);
                 feedbackDiv.className = 'feedback-incorrect';
                 wrongQuestionIds.add(question.J_ID);
             }
@@ -369,48 +399,57 @@
         function showSummary() {
             quizAreaDiv.style.display = 'none';
             mainView.classList.remove('hidden');
-            statusMessage.textContent = `练习完成！本次共练习 ${currentQuestions.length} 题。`;
+            statusMessage.textContent = translations[currentLang].quizComplete(currentQuestions.length);
         }
 
         function displayListView(mode) {
+            const t = translations[currentLang];
             let questionsToDisplay;
             if (mode === 'all') {
-                listViewTitle.textContent = '全部题库';
+                listViewTitle.textContent = t.allQuestionsTitle;
                 questionsToDisplay = allQuestions;
-            } else { // mode === 'wrong'
-                listViewTitle.textContent = '我的错题集';
+            } else {
+                listViewTitle.textContent = t.wrongQuestionsTitle;
                 questionsToDisplay = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID));
             }
 
             if (questionsToDisplay.length === 0) {
-                listViewContent.innerHTML = '<p style="text-align:center; color:#777; padding: 20px 0;">这里是空的！</p>';
+                listViewContent.innerHTML = `<p style="text-align:center; color:#777; padding: 20px 0;">${t.emptyList}</p>`;
             } else {
                 const htmlContent = questionsToDisplay.map((q, index) => {
                     const isMultiChoice = q.TrueAnswer.length > 1;
-                    const questionTypeTag = isMultiChoice ? '[多选题]' : '[单选题]';
+                    const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
                     const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join('');
                     return `
                         <div class="list-item">
                             <p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p>
                             <div class="list-item-options">${optionsHtml}</div>
-                            <p class="list-item-answer">正确答案: ${q.TrueAnswer}</p>
+                            <p class="list-item-answer">${t.correctAnswerLabel}: ${q.TrueAnswer}</p>
                         </div>`;
                 }).join('');
                 listViewContent.innerHTML = htmlContent;
             }
             mainView.classList.add('hidden');
-            listView.classList.remove('hidden');
+            listView.style.display = 'block';
         }
 
         function hideListView() {
-            listView.classList.add('hidden');
+            listView.style.display = 'none';
             mainView.classList.remove('hidden');
         }
 
         // --- 事件监听器 ---
         document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem(LANG_KEY) || 'zh';
+            setLanguage(savedLang);
             loadWrongQuestions();
             loadQuestions();
+        });
+
+        langSwitcher.addEventListener('click', () => {
+            const newLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem(LANG_KEY, newLang);
+            setLanguage(newLang);
         });
 
         startSequentialBtn.addEventListener('click', () => startQuiz('sequential'));
@@ -421,10 +460,11 @@
         backToMenuBtn.addEventListener('click', hideListView);
 
         resetWrongBtn.addEventListener('click', () => {
-            if (confirm('确定要清空所有错题记录吗？此操作不可恢复。')) {
+            const t = translations[currentLang];
+            if (confirm(t.confirmReset)) {
                 wrongQuestionIds.clear();
                 saveWrongQuestions();
-                alert('错题记录已清空。');
+                alert(t.resetSuccess);
             }
         });
 
