@@ -275,7 +275,7 @@
 
         async function loadQuestions() {
             try {
-                const response = await fetch('业余无线电台操作技术能力验证题库（2025年版）-A类.json');
+                const response = await fetch('QuestionLib.json'); // <-- 文件名已修改
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 allQuestions = await response.json();
                 statusMessage.textContent = `题库加载成功！共 ${allQuestions.length} 题。`;
@@ -283,7 +283,8 @@
                 startRandomBtn.disabled = false;
                 viewAllBtn.disabled = false;
             } catch (error) {
-                statusMessage.innerHTML = `<strong>题库加载失败！</strong><br>请确保 '业余无线电台操作技术能力验证题库（2025年版）-A类.json' 文件与此HTML文件在同一目录下。<br>错误信息: ${error.message}`;
+                // <-- 错误提示中的文件名已同步修改
+                statusMessage.innerHTML = `<strong>题库加载失败！</strong><br>请确保 'QuestionLib.json' 文件与此HTML文件在同一目录下。<br>错误信息: ${error.message}`;
                 console.error("Failed to load questions:", error);
             }
         }
