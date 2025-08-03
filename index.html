@@ -100,8 +100,7 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
-        /* --- 答题与列表视图通用样式 --- */
-        #progress { font-size: 14px; color: #555; text-align: right; margin-bottom: 15px; }
+        /* --- 答题区域 --- */
         #question { font-size: 20px; font-weight: 600; margin-bottom: 20px; line-height: 1.6; }
         .question-type { color: #3949ab; font-weight: bold; font-size: 16px; margin-right: 10px; }
         .options { display: flex; flex-direction: column; gap: 15px; }
@@ -114,6 +113,31 @@
         .feedback-correct { background-color: #4caf50; color: white; }
         .feedback-incorrect { background-color: #f44336; color: white; }
         .actions { margin-top: 25px; display: flex; justify-content: center; }
+
+        /* --- 进度条与统计样式 --- */
+        #progress-container {
+            width: 100%; background-color: #e0e0e0; border-radius: 8px;
+            height: 24px; position: relative; margin-bottom: 15px; overflow: hidden;
+        }
+        #progress-bar {
+            width: 0%; height: 100%; background-color: #3949ab;
+            border-radius: 8px; transition: width 0.4s ease-in-out;
+        }
+        #progress-text {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: white;
+            font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        #stats-container {
+            display: flex; justify-content: space-around; flex-wrap: wrap;
+            gap: 10px 20px; margin-bottom: 25px; padding: 10px;
+            background-color: #f8f9fa; border-radius: 6px; font-size: 14px;
+        }
+        #stats-container span { font-weight: 500; }
+        #stats-correct { color: #2e7d32; }
+        #stats-incorrect { color: #c62828; }
+
+        /* --- 列表查看视图 --- */
         .list-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         #list-view-content { max-height: 60vh; overflow-y: auto; padding-right: 15px; }
         .list-item { border-bottom: 1px solid #e0e0e0; padding: 15px 0; }
@@ -156,7 +180,16 @@
 
         <!-- 答题视图 -->
         <div id="quiz-area" class="view">
-            <div id="progress"></div>
+            <div id="progress-container">
+                <div id="progress-bar"></div>
+                <span id="progress-text">0%</span>
+            </div>
+            <div id="stats-container">
+                <span id="stats-answered"></span>
+                <span id="stats-remaining"></span>
+                <span id="stats-correct"></span>
+                <span id="stats-incorrect"></span>
+            </div>
             <h2 id="question"></h2>
             <div class="options" id="options"></div>
             <div id="feedback" class="hidden"></div>
@@ -196,7 +229,8 @@
                 resetWrongButton: '清空错题记录', changeLibraryButton: '切换题库',
                 loading: '正在加载题库...', loadSuccess: c => `题库加载成功！共 ${c} 题。`,
                 loadFail: file => `<strong>题库 '${file}' 加载失败！</strong><br>请确保文件存在且与HTML文件在同一目录下。`,
-                progress: (cur, total) => `进度: ${cur} / ${total}`,
+                statsAnswered: c => `已答: ${c}`, statsRemaining: c => `未答: ${c}`,
+                statsCorrect: c => `正确: ${c}`, statsIncorrect: c => `错误: ${c}`,
                 singleChoice: '[单选题]', multiChoice: '[多选题]',
                 checkAnswer: '核对答案', nextQuestion: '下一题',
                 correct: '回答正确！', incorrect: ans => `回答错误！正确答案是: <strong>${ans}</strong>`,
@@ -218,7 +252,8 @@
                 resetWrongButton: 'Clear Mistake Log', changeLibraryButton: 'Change Library',
                 loading: 'Loading question bank...', loadSuccess: c => `Successfully loaded ${c} questions.`,
                 loadFail: file => `<strong>Failed to load '${file}'!</strong><br>Please ensure the file exists in the same directory.`,
-                progress: (cur, total) => `Progress: ${cur} / ${total}`,
+                statsAnswered: c => `Answered: ${c}`, statsRemaining: c => `Remaining: ${c}`,
+                statsCorrect: c => `Correct: ${c}`, statsIncorrect: c => `Incorrect: ${c}`,
                 singleChoice: '[Single Choice]', multiChoice: '[Multiple Choice]',
                 checkAnswer: 'Check Answer', nextQuestion: 'Next Question',
                 correct: 'Correct!', incorrect: ans => `Incorrect! The correct answer is: <strong>${ans}</strong>`,
@@ -235,19 +270,14 @@
         // --- DOM 元素 ---
         const allViews = document.querySelectorAll('.view');
         const langSwitcher = document.getElementById('lang-switcher');
-        const librarySelectionView = document.getElementById('library-selection-view');
-        const mainView = document.getElementById('main-view');
-        const quizArea = document.getElementById('quiz-area');
-        const listView = document.getElementById('list-view');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
         // ... (other elements are selected inside functions where needed)
 
         // --- 状态变量 ---
-        let allQuestions = [];
-        let currentQuestions = [];
-        let currentQuestionIndex = 0;
-        let wrongQuestionIds = new Set();
-        let currentLang = 'zh';
-        let currentLibraryKey = null;
+        let allQuestions = [], currentQuestions = [], wrongQuestionIds = new Set();
+        let currentQuestionIndex = 0, correctCount = 0, incorrectCount = 0;
+        let currentLang = 'zh', currentLibraryKey = null;
         const LANG_KEY = 'amateurRadioQuizLang';
         const LAST_LIBRARY_KEY = 'amateurRadioLastLibrary';
         const WRONG_QUESTIONS_KEY_PREFIX = 'amateurRadioWrongQuestions_';
@@ -264,17 +294,14 @@
             const t = translations[lang];
             
             document.documentElement.lang = t.lang;
-            document.title = t.selectionTitle; // Default title
+            document.title = t.selectionTitle;
             langSwitcher.textContent = t.langToggle;
 
-            // Update selection view
             document.getElementById('selection-title').textContent = t.selectionTitle;
             document.querySelectorAll('#library-selection-view .btn').forEach(btn => {
-                const key = btn.dataset.key;
-                btn.textContent = LIBRARIES[key].name[lang];
+                btn.textContent = LIBRARIES[btn.dataset.key].name[lang];
             });
 
-            // Update main view (if a library is selected)
             if (currentLibraryKey) {
                 document.title = t.mainTitle(LIBRARIES[currentLibraryKey].name[lang]);
                 document.getElementById('main-title').textContent = t.mainTitle(LIBRARIES[currentLibraryKey].name[lang]);
@@ -284,14 +311,15 @@
                 document.getElementById('view-all-btn').textContent = t.viewAllButton;
                 document.getElementById('change-library-btn').textContent = t.changeLibraryButton;
                 updateWrongButtons();
+                if (document.getElementById('quiz-area').style.display === 'block') {
+                    updateStatsDisplay(); // Refresh stats text on lang change
+                }
             }
             
-            // Update other static texts
             document.getElementById('check-btn').textContent = t.checkAnswer;
             document.getElementById('next-btn').textContent = t.nextQuestion;
             document.getElementById('back-to-menu-btn').textContent = t.backToMenu;
 
-            // Update status message if it's not showing a failure
             const statusMessage = document.getElementById('status-message');
             if (!isInitial && statusMessage.textContent && !statusMessage.innerHTML.includes('<strong>')) {
                 if (allQuestions.length > 0) {
@@ -303,21 +331,13 @@
         function selectLibrary(key) {
             currentLibraryKey = key;
             localStorage.setItem(LAST_LIBRARY_KEY, key);
-            allQuestions = []; // Reset questions
-            
-            // ***** FIX STARTS HERE *****
-            // Call setLanguage to update all UI text for the newly selected library.
-            // This ensures all buttons get their text content immediately.
+            allQuestions = [];
             setLanguage(currentLang);
-            // ***** FIX ENDS HERE *****
-
-            // Disable buttons until loaded
             document.querySelectorAll('#main-view .btn').forEach(b => b.disabled = true);
             document.getElementById('reset-wrong-btn').disabled = false;
             document.getElementById('change-library-btn').disabled = false;
-
-            showView(mainView);
-            loadWrongQuestions(); // Load mistakes for this specific library
+            showView(document.getElementById('main-view'));
+            loadWrongQuestions();
             loadQuestions();
         }
 
@@ -365,9 +385,23 @@
             }
         }
 
+        function updateStatsDisplay() {
+            const t = translations[currentLang];
+            const answeredCount = correctCount + incorrectCount;
+            const remainingCount = currentQuestions.length - answeredCount;
+
+            document.getElementById('stats-answered').textContent = t.statsAnswered(answeredCount);
+            document.getElementById('stats-remaining').textContent = t.statsRemaining(remainingCount);
+            document.getElementById('stats-correct').textContent = t.statsCorrect(correctCount);
+            document.getElementById('stats-incorrect').textContent = t.statsIncorrect(incorrectCount);
+        }
+
         function startQuiz(mode) {
             const t = translations[currentLang];
             currentQuestionIndex = 0;
+            correctCount = 0;
+            incorrectCount = 0;
+
             switch(mode) {
                 case 'sequential': currentQuestions = [...allQuestions]; break;
                 case 'random': currentQuestions = [...allQuestions].sort(() => Math.random() - 0.5); break;
@@ -377,7 +411,11 @@
                     break;
             }
             if (currentQuestions.length === 0) { alert(t.noQuestions); return; }
-            showView(quizArea);
+            
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+            updateStatsDisplay();
+            showView(document.getElementById('quiz-area'));
             displayQuestion();
         }
 
@@ -389,12 +427,15 @@
             document.getElementById('next-btn').classList.add('hidden');
             document.getElementById('check-btn').disabled = false;
 
+            const percentage = ((currentQuestionIndex) / currentQuestions.length) * 100;
+            progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `${Math.round(percentage)}%`;
+
             const question = currentQuestions[currentQuestionIndex];
             const isMultiChoice = question.TrueAnswer.length > 1;
             const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
             const inputType = isMultiChoice ? 'checkbox' : 'radio';
 
-            document.getElementById('progress').textContent = t.progress(currentQuestionIndex + 1, currentQuestions.length);
             document.getElementById('question').innerHTML = `<span class="question-type">${questionTypeTag}</span>${question.Question}`;
             
             const optionsDiv = document.getElementById('options');
@@ -423,12 +464,16 @@
             if (isCorrect) {
                 feedbackDiv.textContent = t.correct;
                 feedbackDiv.className = 'feedback-correct';
+                correctCount++;
                 if (wrongQuestionIds.has(question.J_ID)) wrongQuestionIds.delete(question.J_ID);
             } else {
                 feedbackDiv.innerHTML = t.incorrect(question.TrueAnswer);
                 feedbackDiv.className = 'feedback-incorrect';
+                incorrectCount++;
                 wrongQuestionIds.add(question.J_ID);
             }
+            
+            updateStatsDisplay();
             saveWrongQuestions();
             highlightAnswers(correctAnswer);
             document.getElementById('check-btn').classList.add('hidden');
@@ -445,7 +490,7 @@
         }
 
         function showSummary() {
-            showView(mainView);
+            showView(document.getElementById('main-view'));
             document.getElementById('status-message').textContent = translations[currentLang].quizComplete(currentQuestions.length);
         }
 
@@ -477,7 +522,7 @@
                         </div>`;
                 }).join('');
             }
-            showView(listView);
+            showView(document.getElementById('list-view'));
         }
 
         // --- 事件监听器 ---
@@ -489,7 +534,7 @@
             if (savedLibrary && LIBRARIES[savedLibrary]) {
                 selectLibrary(savedLibrary);
             } else {
-                showView(librarySelectionView);
+                showView(document.getElementById('library-selection-view'));
             }
         });
 
@@ -506,7 +551,7 @@
         document.getElementById('change-library-btn').addEventListener('click', () => {
             currentLibraryKey = null;
             localStorage.removeItem(LAST_LIBRARY_KEY);
-            showView(librarySelectionView);
+            showView(document.getElementById('library-selection-view'));
         });
 
         document.getElementById('start-sequential-btn').addEventListener('click', () => startQuiz('sequential'));
@@ -514,7 +559,7 @@
         document.getElementById('start-wrong-btn').addEventListener('click', () => startQuiz('wrong'));
         document.getElementById('view-all-btn').addEventListener('click', () => displayListView('all'));
         document.getElementById('view-wrong-btn').addEventListener('click', () => displayListView('wrong'));
-        document.getElementById('back-to-menu-btn').addEventListener('click', () => showView(mainView));
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
 
         document.getElementById('reset-wrong-btn').addEventListener('click', () => {
             const t = translations[currentLang];
