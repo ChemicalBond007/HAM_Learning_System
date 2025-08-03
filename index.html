@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业余无线电台A类题库练习</title>
+    <style>
+        /* --- 页面整体样式 --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #fff;
+            padding: 25px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a237e;
+            margin-bottom: 25px;
+        }
+
+        /* --- 控制区域样式 --- */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary { background-color: #3949ab; color: white; }
+        .btn-primary:hover { background-color: #283593; }
+
+        .btn-secondary { background-color: #546e7a; color: white; }
+        .btn-secondary:hover { background-color: #455a64; }
+        
+        .btn-danger { background-color: #d32f2f; color: white; }
+        .btn-danger:hover { background-color: #c62828; }
+
+        .btn:disabled {
+            background-color: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        /* --- 答题区域样式 --- */
+        .quiz-area {
+            display: none; /* 默认隐藏 */
+        }
+
+        #progress {
+            font-size: 14px;
+            color: #555;
+            text-align: right;
+            margin-bottom: 15px;
+        }
+
+        #question {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option {
+            display: block;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .option input {
+            margin-right: 12px;
+        }
+
+        .option:hover {
+            background-color: #e8eaf6;
+            border-color: #3949ab;
+        }
+
+        /* --- 答题后样式 --- */
+        .option.correct {
+            background-color: #e8f5e9; /* 绿色 */
+            border-color: #4caf50;
+            font-weight: bold;
+        }
+
+        .option.incorrect {
+            background-color: #ffebee; /* 红色 */
+            border-color: #f44336;
+        }
+
+        /* --- 反馈和操作按钮 --- */
+        #feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .feedback-correct { background-color: #4caf50; color: white; }
+        .feedback-incorrect { background-color: #f44336; color: white; }
+
+        .actions {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>业余无线电台A类题库练习</h1>
+
+        <div class="controls" id="controls">
+            <button id="start-sequential-btn" class="btn btn-primary" disabled>顺序练习</button>
+            <button id="start-random-btn" class="btn btn-primary" disabled>随机练习</button>
+            <button id="start-wrong-btn" class="btn btn-secondary" disabled>练习错题</button>
+            <button id="reset-wrong-btn" class="btn btn-danger">清空错题记录</button>
+        </div>
+
+        <div id="status-message" style="text-align: center; padding: 10px; color: #555;">正在加载题库...</div>
+
+        <div class="quiz-area" id="quiz-area">
+            <div id="progress"></div>
+            <h2 id="question"></h2>
+            <div class="options" id="options"></div>
+            <div id="feedback" class="hidden"></div>
+            <div class="actions">
+                <button id="check-btn" class="btn btn-primary">核对答案</button>
+                <button id="next-btn" class="btn btn-primary hidden">下一题</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM 元素获取 ---
+        const controlsDiv = document.getElementById('controls');
+        const quizAreaDiv = document.getElementById('quiz-area');
+        const statusMessage = document.getElementById('status-message');
+
+        const startSequentialBtn = document.getElementById('start-sequential-btn');
+        const startRandomBtn = document.getElementById('start-random-btn');
+        const startWrongBtn = document.getElementById('start-wrong-btn');
+        const resetWrongBtn = document.getElementById('reset-wrong-btn');
+
+        const progressText = document.getElementById('progress');
+        const questionText = document.getElementById('question');
+        const optionsDiv = document.getElementById('options');
+        const feedbackDiv = document.getElementById('feedback');
+        const checkBtn = document.getElementById('check-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        // --- 状态变量 ---
+        let allQuestions = [];
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let wrongQuestionIds = new Set();
+        const WRONG_QUESTIONS_KEY = 'amateurRadioWrongQuestions_A_Class';
+
+        // --- 函数定义 ---
+
+        /**
+         * 从本地存储加载错题ID
+         */
+        function loadWrongQuestions() {
+            const saved = localStorage.getItem(WRONG_QUESTIONS_KEY);
+            if (saved) {
+                wrongQuestionIds = new Set(JSON.parse(saved));
+            }
+            updateWrongQuestionButton();
+        }
+
+        /**
+         * 将错题ID保存到本地存储
+         */
+        function saveWrongQuestions() {
+            localStorage.setItem(WRONG_QUESTIONS_KEY, JSON.stringify(Array.from(wrongQuestionIds)));
+            updateWrongQuestionButton();
+        }
+        
+        /**
+         * 更新错题按钮的状态和文本
+         */
+        function updateWrongQuestionButton() {
+            const count = wrongQuestionIds.size;
+            startWrongBtn.textContent = `练习错题 (${count})`;
+            startWrongBtn.disabled = count === 0;
+        }
+
+        /**
+         * 加载题库JSON文件
+         */
+        async function loadQuestions() {
+            try {
+                const response = await fetch('业余无线电台操作技术能力验证题库（2025年版）-A类.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                allQuestions = await response.json();
+                statusMessage.textContent = `题库加载成功！共 ${allQuestions.length} 题。`;
+                startSequentialBtn.disabled = false;
+                startRandomBtn.disabled = false;
+            } catch (error) {
+                statusMessage.innerHTML = `<strong>题库加载失败！</strong><br>请确保 '业余无线电台操作技术能力验证题库（2025年版）-A类.json' 文件与此HTML文件在同一目录下。<br>错误信息: ${error.message}`;
+                console.error("Failed to load questions:", error);
+            }
+        }
+
+        /**
+         * 开始答题
+         * @param {string} mode - 'sequential', 'random', or 'wrong'
+         */
+        function startQuiz(mode) {
+            currentQuestionIndex = 0;
+            
+            switch(mode) {
+                case 'sequential':
+                    currentQuestions = [...allQuestions];
+                    break;
+                case 'random':
+                    currentQuestions = [...allQuestions].sort(() => Math.random() - 0.5);
+                    break;
+                case 'wrong':
+                    if (wrongQuestionIds.size === 0) {
+                        alert("没有错题可以练习！");
+                        return;
+                    }
+                    currentQuestions = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID));
+                    break;
+            }
+
+            if (currentQuestions.length === 0) {
+                alert("没有题目可以练习！");
+                return;
+            }
+
+            controlsDiv.classList.add('hidden');
+            statusMessage.classList.add('hidden');
+            quizAreaDiv.style.display = 'block';
+            displayQuestion();
+        }
+
+        /**
+         * 显示当前题目
+         */
+        function displayQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length) {
+                showSummary();
+                return;
+            }
+
+            feedbackDiv.classList.add('hidden');
+            checkBtn.classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            checkBtn.disabled = false;
+
+            const question = currentQuestions[currentQuestionIndex];
+            progressText.textContent = `进度: ${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+            questionText.textContent = question.Question;
+            
+            optionsDiv.innerHTML = '';
+            for (const key in question.Options) {
+                const optionLabel = document.createElement('label');
+                optionLabel.className = 'option';
+                
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = 'option';
+                input.value = key;
+
+                optionLabel.appendChild(input);
+                optionLabel.appendChild(document.createTextNode(`${key}. ${question.Options[key]}`));
+                optionsDiv.appendChild(optionLabel);
+            }
+        }
+
+        /**
+         * 核对答案
+         */
+        function checkAnswer() {
+            const selectedOptions = Array.from(optionsDiv.querySelectorAll('input:checked')).map(input => input.value);
+            const userAnswer = selectedOptions.sort().join('');
+            
+            const question = currentQuestions[currentQuestionIndex];
+            const correctAnswer = question.TrueAnswer.split('').sort().join('');
+
+            const isCorrect = userAnswer === correctAnswer;
+
+            feedbackDiv.classList.remove('hidden');
+            if (isCorrect) {
+                feedbackDiv.textContent = '回答正确！';
+                feedbackDiv.className = 'feedback-correct';
+                // 如果题目在错题集里，答对后就移除
+                if (wrongQuestionIds.has(question.J_ID)) {
+                    wrongQuestionIds.delete(question.J_ID);
+                }
+            } else {
+                feedbackDiv.innerHTML = `回答错误！正确答案是: <strong>${question.TrueAnswer}</strong>`;
+                feedbackDiv.className = 'feedback-incorrect';
+                wrongQuestionIds.add(question.J_ID);
+            }
+            
+            saveWrongQuestions();
+            highlightAnswers(correctAnswer);
+
+            checkBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+            // 禁用所有选项
+            optionsDiv.querySelectorAll('input').forEach(input => input.disabled = true);
+        }
+
+        /**
+         * 标记正确和错误选项
+         * @param {string} correctAnswer - 正确答案字符串, e.g., "AC"
+         */
+        function highlightAnswers(correctAnswer) {
+            const allOptionLabels = optionsDiv.querySelectorAll('.option');
+            allOptionLabels.forEach(label => {
+                const input = label.querySelector('input');
+                const optionValue = input.value;
+
+                if (correctAnswer.includes(optionValue)) {
+                    label.classList.add('correct');
+                } else if (input.checked) {
+                    label.classList.add('incorrect');
+                }
+            });
+        }
+
+        /**
+         * 显示答题总结
+         */
+        function showSummary() {
+            quizAreaDiv.style.display = 'none';
+            controlsDiv.classList.remove('hidden');
+            statusMessage.classList.remove('hidden');
+            statusMessage.textContent = `练习完成！本次共练习 ${currentQuestions.length} 题。`;
+        }
+
+        // --- 事件监听器 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadWrongQuestions();
+            loadQuestions();
+        });
+
+        startSequentialBtn.addEventListener('click', () => startQuiz('sequential'));
+        startRandomBtn.addEventListener('click', () => startQuiz('random'));
+        startWrongBtn.addEventListener('click', () => startQuiz('wrong'));
+
+        resetWrongBtn.addEventListener('click', () => {
+            if (confirm('确定要清空所有错题记录吗？此操作不可恢复。')) {
+                wrongQuestionIds.clear();
+                saveWrongQuestions();
+                alert('错题记录已清空。');
+            }
+        });
+
+        checkBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            displayQuestion();
+        });
+
+    </script>
+</body>
+</html>
