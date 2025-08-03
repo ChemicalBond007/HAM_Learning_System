@@ -39,6 +39,8 @@
         .btn-info:hover { background-color: #0277bd; }
         .btn-danger { background-color: #d32f2f; color: white; }
         .btn-danger:hover { background-color: #c62828; }
+        .btn-success { background-color: #2e7d32; color: white; }
+        .btn-success:hover { background-color: #1b5e20; }
         .btn:disabled { background-color: #bdbdbd; cursor: not-allowed; }
 
         /* --- 视图通用 --- */
@@ -67,27 +69,48 @@
         .actions { margin-top: 25px; display: flex; justify-content: space-between; align-items: center; }
 
         /* --- 进度与统计 --- */
-        #progress-container {
-            width: 100%; background-color: #e0e0e0; border-radius: 8px;
-            height: 24px; position: relative; margin-bottom: 15px; overflow: hidden;
-        }
-        #progress-bar {
-            width: 0%; height: 100%; background-color: #3949ab;
-            border-radius: 8px; transition: width 0.4s ease-in-out;
-        }
-        #progress-text {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
+        .practice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         #stats-container {
-            display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px 20px;
-            margin-bottom: 25px; padding: 10px; background-color: #f8f9fa; border-radius: 6px; font-size: 14px;
+            display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 10px 20px;
+            padding: 10px; background-color: #f8f9fa; border-radius: 6px; font-size: 14px; flex-grow: 1;
         }
         #stats-container span { font-weight: 500; }
         #stats-correct { color: #2e7d32; }
         #stats-incorrect { color: #c62828; }
+        #progress-panel {
+            display: none; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 8px; max-height: 180px; overflow-y: auto;
+            background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px;
+        }
+        .panel-btn {
+            padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .panel-btn.unanswered { background-color: #e0e0e0; }
+        .panel-btn.correct { background-color: #a5d6a7; border-color: #2e7d32; }
+        .panel-btn.incorrect { background-color: #ef9a9a; border-color: #c62828; }
+        .panel-btn.active {
+            transform: scale(1.1); box-shadow: 0 0 10px rgba(57, 73, 171, 0.7);
+            border-color: #3949ab; font-weight: bold;
+        }
         #exam-timer {
             font-size: 18px; font-weight: bold; color: #d32f2f; text-align: center; margin-bottom: 15px;
+        }
+        
+        /* --- 响应式侧边栏 --- */
+        #quiz-body-wrapper { display: block; }
+        #question-content { flex: 1; transition: margin-right 0.3s ease; }
+
+        @media (min-width: 992px) {
+            #quiz-body-wrapper { display: flex; }
+            #progress-panel {
+                display: grid; /* Always grid on desktop */
+                width: 0; opacity: 0; overflow: hidden; transition: all 0.3s ease;
+                padding: 0; margin-left: 0; max-height: 500px;
+            }
+            #quiz-area.panel-visible #progress-panel {
+                width: 280px; opacity: 1; padding: 15px; margin-left: 20px;
+            }
         }
 
         /* --- 列表/结果视图 --- */
@@ -118,6 +141,9 @@
                 <button class="btn btn-large btn-primary" data-key="C"></button>
                 <button class="btn btn-large btn-secondary" data-key="Main"></button>
             </div>
+            <div class="controls" style="margin-top: 30px; border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                <button id="import-progress-btn-main" class="btn btn-success"></button>
+            </div>
         </div>
 
         <div id="main-view" class="view">
@@ -130,38 +156,40 @@
                 <button id="view-wrong-btn" class="btn btn-info" disabled></button>
                 <button id="reset-wrong-btn" class="btn btn-danger"></button>
                 <button id="change-library-btn" class="btn btn-secondary"></button>
+                <button id="export-progress-btn" class="btn btn-success"></button>
             </div>
             <div id="status-message" style="text-align: center; padding: 10px; color: #555;"></div>
         </div>
 
         <div id="quiz-area" class="view">
             <div id="exam-timer" class="hidden"></div>
-            <div id="progress-container" class="hidden">
-                <div id="progress-bar"></div>
-                <span id="progress-text">0%</span>
+            <div id="practice-header" class="practice-header hidden">
+                <div id="stats-container">
+                    <span id="stats-answered"></span>
+                    <span id="stats-remaining"></span>
+                    <span id="stats-correct"></span>
+                    <span id="stats-incorrect"></span>
+                </div>
+                <button id="toggle-panel-btn" class="btn btn-info"></button>
             </div>
-            <div id="stats-container" class="hidden">
-                <span id="stats-answered"></span>
-                <span id="stats-remaining"></span>
-                <span id="stats-correct"></span>
-                <span id="stats-incorrect"></span>
-            </div>
-            <h2 id="question"></h2>
-            <div class="options" id="options"></div>
-            <div id="feedback" class="hidden"></div>
-            <div class="actions">
-                <div id="practice-actions" class="hidden" style="width:100%; display:flex; justify-content:space-between;">
-                    <button id="practice-back-btn" class="btn btn-secondary"></button>
-                    <div>
-                        <button id="check-btn" class="btn btn-primary"></button>
+            <div id="quiz-body-wrapper">
+                <div id="question-content">
+                    <h2 id="question"></h2>
+                    <div class="options" id="options"></div>
+                    <div id="feedback" class="hidden"></div>
+                    <div class="actions">
+                        <button id="practice-back-btn" class="btn btn-secondary hidden"></button>
+                        <button id="practice-prev-btn" class="btn btn-secondary hidden"></button>
+                        <button id="exam-prev-btn" class="btn btn-secondary hidden"></button>
+                        <span style="flex-grow: 1;"></span>
+                        <button id="check-btn" class="btn btn-primary hidden"></button>
+                        <button id="exam-submit-btn" class="btn btn-danger hidden"></button>
+                        <span style="flex-grow: 1;"></span>
                         <button id="next-btn" class="btn btn-primary hidden"></button>
+                        <button id="exam-next-btn" class="btn btn-primary hidden"></button>
                     </div>
                 </div>
-                <div id="exam-actions" class="hidden" style="width:100%; display:flex; justify-content:space-between;">
-                    <button id="exam-prev-btn" class="btn btn-secondary"></button>
-                    <button id="exam-submit-btn" class="btn btn-danger"></button>
-                    <button id="exam-next-btn" class="btn btn-primary"></button>
-                </div>
+                <div id="progress-panel"></div>
             </div>
         </div>
 
@@ -183,6 +211,8 @@
                 <button id="result-back-btn" class="btn btn-primary"></button>
             </div>
         </div>
+        
+        <input type="file" id="file-importer" class="hidden" accept=".json">
     </div>
 
     <script>
@@ -201,25 +231,29 @@
                 mainTitle: libName => `业余无线电台 ${libName} 练习`,
                 seqButton: '顺序练习', examButton: '模拟考试', practiceWrongButton: c => `练习错题 (${c})`,
                 viewAllButton: '查看题库', viewWrongButton: c => `查看错题 (${c})`,
-                resetWrongButton: '清空错题记录', changeLibraryButton: '切换题库',
+                resetWrongButton: '清空进度', changeLibraryButton: '切换题库',
+                exportButton: '导出进度', importButton: '导入进度',
+                importSuccess: '进度导入成功！', importFail: '文件无效或已损坏。',
                 loading: '正在加载题库...', loadSuccess: c => `题库加载成功！共 ${c} 题。`,
                 loadFail: file => `<strong>题库 '${file}' 加载失败！</strong><br>请确保文件存在且与HTML文件在同一目录下。`,
                 statsAnswered: c => `已答: ${c}`, statsRemaining: c => `未答: ${c}`,
                 statsCorrect: c => `正确: ${c}`, statsIncorrect: c => `错误: ${c}`,
+                viewStatusButton: '查看答题状态', hideStatusButton: '隐藏答题状态',
                 singleChoice: '[单选题]', multiChoice: '[多选题]',
                 checkAnswer: '核对答案', nextQuestion: '下一题',
                 examPrev: '上一题', examNext: '下一题', examSubmit: '交卷',
+                practicePrevButton: '上一题',
                 confirmSubmit: '确定要交卷吗？',
                 timeRemaining: '剩余时间',
                 examResultTitle: '考试结果', resultPass: '及格', resultFail: '不及格',
                 resultDetails: (score, total, correct, incorrect, time) => `分数: ${score}/${total}<br>正确: ${correct} | 错误: ${incorrect}<br>用时: ${time}`,
-                correct: '回答正确！', incorrect: ans => `回答错误！正确答案是: <strong>${ans}</strong>`,
+                correct: '回答正确！', incorrectPrefix: '回答错误！正确答案是: ',
                 quizComplete: c => `练习完成！本次共练习 ${c} 题。`,
                 allQuestionsTitle: '全部题库', wrongQuestionsTitle: '我的错题集',
                 emptyList: '这里是空的！', backToMenu: '返回主菜单', practiceBackButton: '返回主菜单',
                 correctAnswerLabel: '正确答案',
-                confirmReset: '确定要清空当前题库的错题记录吗？此操作不可恢复。',
-                resetSuccess: '错题记录已清空。',
+                confirmReset: '确定要清空当前题库的所有进度（包括错题和顺序练习）吗？',
+                resetSuccess: '进度已清空。',
                 noWrongQuestions: '没有错题可以练习！', noQuestions: '没有题目可以练习！',
                 notEnoughQuestions: total => `题库题目不足 ${total} 道，无法进行模拟考试。`
             },
@@ -228,43 +262,48 @@
                 mainTitle: libName => `Amateur Radio ${libName} Quiz`,
                 seqButton: 'Sequential Practice', examButton: 'Simulated Exam', practiceWrongButton: c => `Practice Mistakes (${c})`,
                 viewAllButton: 'View Question Bank', viewWrongButton: c => `View Mistakes (${c})`,
-                resetWrongButton: 'Clear Mistake Log', changeLibraryButton: 'Change Library',
+                resetWrongButton: 'Clear Progress', changeLibraryButton: 'Change Library',
+                exportButton: 'Export Progress', importButton: 'Import Progress',
+                importSuccess: 'Progress imported successfully!', importFail: 'Invalid or corrupted file.',
                 loading: 'Loading question bank...', loadSuccess: c => `Successfully loaded ${c} questions.`,
                 loadFail: file => `<strong>Failed to load '${file}'!</strong><br>Please ensure the file exists in the same directory.`,
                 statsAnswered: c => `Answered: ${c}`, statsRemaining: c => `Remaining: ${c}`,
                 statsCorrect: c => `Correct: ${c}`, statsIncorrect: c => `Incorrect: ${c}`,
+                viewStatusButton: 'View Status', hideStatusButton: 'Hide Status',
                 singleChoice: '[Single Choice]', multiChoice: '[Multiple Choice]',
                 checkAnswer: 'Check Answer', nextQuestion: 'Next Question',
                 examPrev: 'Previous', examNext: 'Next', examSubmit: 'Submit',
+                practicePrevButton: 'Previous',
                 confirmSubmit: 'Are you sure you want to submit the exam?',
                 timeRemaining: 'Time Remaining',
                 examResultTitle: 'Exam Result', resultPass: 'Pass', resultFail: 'Fail',
                 resultDetails: (score, total, correct, incorrect, time) => `Score: ${score}/${total}<br>Correct: ${correct} | Incorrect: ${incorrect}<br>Time Spent: ${time}`,
-                correct: 'Correct!', incorrect: ans => `Incorrect! The correct answer is: <strong>${ans}</strong>`,
+                correct: 'Correct!', incorrectPrefix: 'Incorrect! The correct answer is: ',
                 quizComplete: c => `Practice complete! You attempted ${c} questions.`,
                 allQuestionsTitle: 'Full Question Bank', wrongQuestionsTitle: 'My Mistakes',
                 emptyList: 'Nothing to show here!', backToMenu: 'Back to Menu', practiceBackButton: 'Back to Menu',
                 correctAnswerLabel: 'Correct Answer',
-                confirmReset: 'Are you sure you want to clear the mistake log for the current library? This cannot be undone.',
-                resetSuccess: 'Mistake log has been cleared.',
+                confirmReset: 'Are you sure you want to clear all progress (mistakes and sequential practice) for the current library?',
+                resetSuccess: 'Progress has been cleared.',
                 noWrongQuestions: 'No mistakes to practice!', noQuestions: 'No questions to practice!',
                 notEnoughQuestions: total => `Not enough questions in the library for a simulated exam (requires ${total}).`
             }
         };
 
-        // --- DOM 元素 ---
-        const allViews = document.querySelectorAll('.view');
-        const langSwitcher = document.getElementById('lang-switcher');
-        const progressBar = document.getElementById('progress-bar');
-        const progressText = document.getElementById('progress-text');
-        const examTimerDisplay = document.getElementById('exam-timer');
-
         // --- 状态变量 ---
         let allQuestions = [], currentQuestions = [], wrongQuestionIds = new Set();
-        let currentQuestionIndex = 0, correctCount = 0, incorrectCount = 0;
+        let sequentialProgress = new Map();
+        let currentQuestionIndex = 0;
         let currentMode = null, examTimer = null, remainingTime = 0, examAnswers = new Map();
+        let isPanelVisible = false;
         let currentLang = 'zh', currentLibraryKey = null;
-        const LANG_KEY = 'amateurRadioQuizLang', LAST_LIBRARY_KEY = 'amateurRadioLastLibrary', WRONG_QUESTIONS_KEY_PREFIX = 'amateurRadioWrongQuestions_';
+        const LANG_KEY = 'amateurRadioQuizLang', LAST_LIBRARY_KEY = 'amateurRadioLastLibrary';
+        const WRONG_QUESTIONS_KEY_PREFIX = 'amateurRadioWrongQuestions_';
+        const SEQ_PROGRESS_KEY_PREFIX = 'amateurRadioSequentialProgress_';
+
+        // --- DOM 元素 (将在 DOMContentLoaded 中初始化) ---
+        let allViews, langSwitcher, examTimerDisplay, fileImporter, progressPanel, togglePanelBtn, practiceHeader, quizArea;
+        let actionButtons;
 
         // --- 核心函数 ---
         function showView(viewToShow) {
@@ -279,7 +318,7 @@
             document.title = t.selectionTitle;
             langSwitcher.textContent = t.langToggle;
             document.getElementById('selection-title').textContent = t.selectionTitle;
-            document.querySelectorAll('#library-selection-view .btn').forEach(btn => {
+            document.querySelectorAll('#library-selection-view .btn[data-key]').forEach(btn => {
                 btn.textContent = LIBRARIES[btn.dataset.key].name[lang];
             });
             if (currentLibraryKey) {
@@ -290,20 +329,24 @@
                 document.getElementById('reset-wrong-btn').textContent = t.resetWrongButton;
                 document.getElementById('view-all-btn').textContent = t.viewAllButton;
                 document.getElementById('change-library-btn').textContent = t.changeLibraryButton;
+                document.getElementById('export-progress-btn').textContent = t.exportButton;
                 updateWrongButtons();
-                if (document.getElementById('quiz-area').style.display === 'block' && currentMode !== 'exam') {
+                if (quizArea.style.display === 'block' && currentMode !== 'exam') {
                     updateStatsDisplay();
                 }
             }
-            document.getElementById('check-btn').textContent = t.checkAnswer;
-            document.getElementById('next-btn').textContent = t.nextQuestion;
-            document.getElementById('exam-prev-btn').textContent = t.examPrev;
-            document.getElementById('exam-next-btn').textContent = t.examNext;
-            document.getElementById('exam-submit-btn').textContent = t.examSubmit;
+            document.getElementById('import-progress-btn-main').textContent = t.importButton;
+            actionButtons.check.textContent = t.checkAnswer;
+            actionButtons.next.textContent = t.nextQuestion;
+            actionButtons.examPrev.textContent = t.examPrev;
+            actionButtons.examNext.textContent = t.examNext;
+            actionButtons.examSubmit.textContent = t.examSubmit;
+            actionButtons.practicePrev.textContent = t.practicePrevButton;
             document.getElementById('back-to-menu-btn').textContent = t.backToMenu;
-            document.getElementById('practice-back-btn').textContent = t.practiceBackButton;
+            actionButtons.practiceBack.textContent = t.practiceBackButton;
             document.getElementById('result-back-btn').textContent = t.backToMenu;
             document.getElementById('result-title').textContent = t.examResultTitle;
+            togglePanelBtn.textContent = isPanelVisible ? t.hideStatusButton : t.viewStatusButton;
             const statusMessage = document.getElementById('status-message');
             if (!isInitial && statusMessage.textContent && !statusMessage.innerHTML.includes('<strong>')) {
                 if (allQuestions.length > 0) statusMessage.textContent = t.loadSuccess(allQuestions.length);
@@ -318,17 +361,25 @@
             document.querySelectorAll('#main-view .btn').forEach(b => b.disabled = true);
             document.getElementById('reset-wrong-btn').disabled = false;
             document.getElementById('change-library-btn').disabled = false;
+            document.getElementById('export-progress-btn').disabled = false;
             showView(document.getElementById('main-view'));
-            loadWrongQuestions();
+            loadProgressForCurrentLibrary();
             loadQuestions();
         }
 
-        function loadWrongQuestions() {
-            const key = WRONG_QUESTIONS_KEY_PREFIX + currentLibraryKey;
-            wrongQuestionIds = new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+        function loadProgressForCurrentLibrary() {
+            const wrongKey = WRONG_QUESTIONS_KEY_PREFIX + currentLibraryKey;
+            wrongQuestionIds = new Set(JSON.parse(localStorage.getItem(wrongKey) || '[]'));
             updateWrongButtons();
+            const seqKey = SEQ_PROGRESS_KEY_PREFIX + currentLibraryKey;
+            sequentialProgress = new Map(JSON.parse(localStorage.getItem(seqKey) || '[]'));
         }
 
+        function saveSequentialProgress() {
+            const key = SEQ_PROGRESS_KEY_PREFIX + currentLibraryKey;
+            localStorage.setItem(key, JSON.stringify([...sequentialProgress.entries()]));
+        }
+        
         function saveWrongQuestions() {
             const key = WRONG_QUESTIONS_KEY_PREFIX + currentLibraryKey;
             localStorage.setItem(key, JSON.stringify(Array.from(wrongQuestionIds)));
@@ -353,16 +404,13 @@
                 const response = await fetch(library.file);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const originalQuestions = await response.json();
-                
-                // ***** DATA TRANSFORMATION FOR OPTION RANDOMIZATION *****
-                allQuestions = originalQuestions.map(q => {
-                    const optionsArray = Object.keys(q.Options).map(key => ({
+                allQuestions = originalQuestions.map(q => ({
+                    ...q,
+                    shufflableOptions: Object.keys(q.Options).map(key => ({
                         text: q.Options[key],
                         isCorrect: q.TrueAnswer.includes(key)
-                    }));
-                    return { ...q, shufflableOptions: optionsArray };
-                });
-
+                    }))
+                }));
                 statusMessage.textContent = t.loadSuccess(allQuestions.length);
                 document.getElementById('start-sequential-btn').disabled = false;
                 document.getElementById('start-exam-btn').disabled = false;
@@ -375,7 +423,9 @@
 
         function updateStatsDisplay() {
             const t = translations[currentLang];
-            const answeredCount = correctCount + incorrectCount;
+            const answeredCount = sequentialProgress.size;
+            const correctCount = [...sequentialProgress.values()].filter(v => v === 'correct').length;
+            const incorrectCount = answeredCount - correctCount;
             const remainingCount = currentQuestions.length - answeredCount;
             document.getElementById('stats-answered').textContent = t.statsAnswered(answeredCount);
             document.getElementById('stats-remaining').textContent = t.statsRemaining(remainingCount);
@@ -386,14 +436,8 @@
         function startQuiz(mode) {
             currentMode = mode;
             const t = translations[currentLang];
-            currentQuestionIndex = 0;
-            correctCount = 0;
-            incorrectCount = 0;
             
-            const practiceActions = document.getElementById('practice-actions');
-            const examActions = document.getElementById('exam-actions');
-            const progressContainer = document.getElementById('progress-container');
-            const statsContainer = document.getElementById('stats-container');
+            Object.values(actionButtons).forEach(btn => btn.classList.add('hidden'));
 
             if (mode === 'exam') {
                 if (allQuestions.length < EXAM_CONFIG.TOTAL_QUESTIONS) {
@@ -401,71 +445,96 @@
                     return;
                 }
                 currentQuestions = [...allQuestions].sort(() => 0.5 - Math.random()).slice(0, EXAM_CONFIG.TOTAL_QUESTIONS);
+                currentQuestionIndex = 0;
                 examAnswers.clear();
-                practiceActions.classList.add('hidden');
-                examActions.classList.remove('hidden');
-                progressContainer.classList.add('hidden');
-                statsContainer.classList.add('hidden');
+                actionButtons.examPrev.classList.remove('hidden');
+                actionButtons.examSubmit.classList.remove('hidden');
+                actionButtons.examNext.classList.remove('hidden');
+                practiceHeader.classList.add('hidden');
+                quizArea.classList.remove('panel-visible');
                 examTimerDisplay.classList.remove('hidden');
                 startExamTimer();
             } else {
                 examTimerDisplay.classList.add('hidden');
-                practiceActions.classList.remove('hidden');
-                examActions.classList.add('hidden');
-                progressContainer.classList.remove('hidden');
-                statsContainer.classList.remove('hidden');
+                actionButtons.practiceBack.classList.remove('hidden');
+                actionButtons.practicePrev.classList.remove('hidden');
+                actionButtons.check.classList.remove('hidden');
+                actionButtons.next.classList.remove('hidden');
+                practiceHeader.classList.remove('hidden');
                 stopExamTimer();
                 if (mode === 'sequential') {
                     currentQuestions = [...allQuestions];
+                    const firstUnansweredIndex = currentQuestions.findIndex(q => !sequentialProgress.has(q.J_ID));
+                    currentQuestionIndex = firstUnansweredIndex === -1 ? 0 : firstUnansweredIndex;
+                    isPanelVisible = false;
+                    quizArea.classList.remove('panel-visible');
+                    togglePanelBtn.textContent = t.viewStatusButton;
+                    generateProgressPanel();
+                    updateStatsDisplay();
                 } else { // 'wrong'
                     if (wrongQuestionIds.size === 0) { alert(t.noWrongQuestions); return; }
                     currentQuestions = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID));
+                    currentQuestionIndex = 0;
+                    practiceHeader.classList.add('hidden');
+                    quizArea.classList.remove('panel-visible');
                 }
             }
 
             if (currentQuestions.length === 0) { alert(t.noQuestions); return; }
             
-            progressBar.style.width = '0%';
-            progressText.textContent = '0%';
-            updateStatsDisplay();
-            showView(document.getElementById('quiz-area'));
+            showView(quizArea);
+            displayQuestion();
+        }
+
+        function generateProgressPanel() {
+            progressPanel.innerHTML = '';
+            currentQuestions.forEach((q, index) => {
+                const btn = document.createElement('button');
+                btn.textContent = index + 1;
+                btn.dataset.index = index;
+                const status = sequentialProgress.get(q.J_ID) || 'unanswered';
+                btn.className = `panel-btn ${status}`;
+                btn.addEventListener('click', () => jumpToQuestion(index));
+                progressPanel.appendChild(btn);
+            });
+        }
+
+        function updatePanelHighlight() {
+            if (currentMode !== 'sequential') return;
+            document.querySelectorAll('#progress-panel .panel-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.index) === currentQuestionIndex);
+            });
+        }
+
+        function jumpToQuestion(index) {
+            currentQuestionIndex = index;
             displayQuestion();
         }
 
         function displayQuestion() {
-            if (currentQuestionIndex >= currentQuestions.length) {
-                if (currentMode !== 'exam') showSummary();
-                return;
-            }
+            if (currentQuestionIndex < 0 || currentQuestionIndex >= currentQuestions.length) return;
+            
             const t = translations[currentLang];
             document.getElementById('feedback').classList.add('hidden');
             
-            if (currentMode !== 'exam') {
-                document.getElementById('check-btn').classList.remove('hidden');
-                document.getElementById('next-btn').classList.add('hidden');
-                document.getElementById('check-btn').disabled = false;
-                const percentage = ((currentQuestionIndex) / currentQuestions.length) * 100;
-                progressBar.style.width = `${percentage}%`;
-                progressText.textContent = `${Math.round(percentage)}%`;
+            if (currentMode === 'exam') {
+                actionButtons.examPrev.disabled = currentQuestionIndex === 0;
+                actionButtons.examNext.disabled = currentQuestionIndex === currentQuestions.length - 1;
             } else {
-                document.getElementById('exam-prev-btn').disabled = currentQuestionIndex === 0;
-                document.getElementById('exam-next-btn').disabled = currentQuestionIndex === currentQuestions.length - 1;
+                actionButtons.practicePrev.disabled = currentQuestionIndex === 0;
+                actionButtons.next.disabled = currentQuestionIndex === currentQuestions.length - 1;
+                actionButtons.check.disabled = sequentialProgress.has(currentQuestions[currentQuestionIndex].J_ID);
             }
 
             const question = currentQuestions[currentQuestionIndex];
             const isMultiChoice = question.TrueAnswer.length > 1;
             const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
-            document.getElementById('question').innerHTML = `<span class="question-type">${questionTypeTag}</span>${currentQuestionIndex + 1}. ${question.Question}`;
+            document.getElementById('question').innerHTML = `<span class="question-type">${questionTypeTag}</span>${question.Question}`;
             
             const optionsDiv = document.getElementById('options');
             optionsDiv.innerHTML = '';
             
-            // ***** OPTION SHUFFLING LOGIC *****
-            let optionsToDisplay = [...question.shufflableOptions];
-            if (currentMode !== 'view') { // Don't shuffle when just viewing
-                optionsToDisplay.sort(() => Math.random() - 0.5);
-            }
-            
+            let optionsToDisplay = [...question.shufflableOptions].sort(() => Math.random() - 0.5);
             const savedAnswerTexts = currentMode === 'exam' ? (examAnswers.get(question.J_ID) || []) : [];
 
             optionsToDisplay.forEach((opt, index) => {
@@ -475,17 +544,22 @@
                 const input = document.createElement('input');
                 input.type = isMultiChoice ? 'checkbox' : 'radio';
                 input.name = 'option';
-                input.value = opt.text; // Use text as value for exam answer saving
-                input.dataset.isCorrect = opt.isCorrect; // Store correctness in dataset
-                
+                input.value = opt.text;
+                input.dataset.isCorrect = opt.isCorrect;
                 if (currentMode === 'exam' && savedAnswerTexts.includes(opt.text)) {
                     input.checked = true;
                 }
-
                 optionLabel.appendChild(input);
                 optionLabel.appendChild(document.createTextNode(` ${displayLetter}. ${opt.text}`));
                 optionsDiv.appendChild(optionLabel);
             });
+
+            if (currentMode === 'sequential') {
+                updatePanelHighlight();
+                if (sequentialProgress.has(question.J_ID)) {
+                    checkAnswer(true);
+                }
+            }
         }
 
         function saveExamAnswer() {
@@ -495,49 +569,51 @@
             examAnswers.set(question.J_ID, selectedTexts);
         }
 
-        function checkAnswer() { // Only for practice modes
+        function checkAnswer(isReview = false) {
             const t = translations[currentLang];
             const allInputs = document.querySelectorAll('#options input');
-            
-            // Check if every input's checked state matches its correctness
             const isFullyCorrect = Array.from(allInputs).every(input => input.checked === (input.dataset.isCorrect === 'true'));
-
             const feedbackDiv = document.getElementById('feedback');
-            feedbackDiv.classList.remove('hidden');
             const question = currentQuestions[currentQuestionIndex];
 
+            if (!isReview) {
+                const status = isFullyCorrect ? 'correct' : 'incorrect';
+                sequentialProgress.set(question.J_ID, status);
+                saveSequentialProgress();
+                if (isFullyCorrect) {
+                    if (wrongQuestionIds.has(question.J_ID)) wrongQuestionIds.delete(question.J_ID);
+                } else {
+                    wrongQuestionIds.add(question.J_ID);
+                }
+                saveWrongQuestions();
+                updateStatsDisplay();
+                const panelBtn = document.querySelector(`.panel-btn[data-index="${currentQuestionIndex}"]`);
+                if (panelBtn) {
+                    panelBtn.className = `panel-btn ${status} active`;
+                }
+            }
+
+            feedbackDiv.classList.remove('hidden');
+            feedbackDiv.textContent = '';
             if (isFullyCorrect) {
                 feedbackDiv.textContent = t.correct;
                 feedbackDiv.className = 'feedback-correct';
-                correctCount++;
-                if (wrongQuestionIds.has(question.J_ID)) wrongQuestionIds.delete(question.J_ID);
             } else {
-                feedbackDiv.innerHTML = t.incorrect(question.TrueAnswer);
+                const correctOptionsText = question.shufflableOptions.filter(opt => opt.isCorrect).map(opt => opt.text).join(', ');
+                feedbackDiv.textContent = t.incorrectPrefix;
+                const strong = document.createElement('strong');
+                strong.textContent = correctOptionsText;
+                feedbackDiv.appendChild(strong);
                 feedbackDiv.className = 'feedback-incorrect';
-                incorrectCount++;
-                wrongQuestionIds.add(question.J_ID);
             }
-            updateStatsDisplay();
-            saveWrongQuestions();
             
-            // Highlight based on the data attribute, not a fixed answer string
             allInputs.forEach(input => {
                 const label = input.parentElement;
-                if (input.dataset.isCorrect === 'true') {
-                    label.classList.add('correct');
-                } else if (input.checked) {
-                    label.classList.add('incorrect');
-                }
+                if (input.dataset.isCorrect === 'true') label.classList.add('correct');
+                else if (input.checked) label.classList.add('incorrect');
                 input.disabled = true;
             });
-
-            document.getElementById('check-btn').classList.add('hidden');
-            document.getElementById('next-btn').classList.remove('hidden');
-        }
-
-        function showSummary() {
-            showView(document.getElementById('main-view'));
-            document.getElementById('status-message').textContent = translations[currentLang].quizComplete(currentQuestions.length);
+            actionButtons.check.disabled = true;
         }
 
         function startExamTimer() {
@@ -548,9 +624,7 @@
                 const minutes = Math.floor(remainingTime / 60);
                 const seconds = remainingTime % 60;
                 examTimerDisplay.textContent = `${t.timeRemaining}: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                if (remainingTime <= 0) {
-                    submitExam(true);
-                }
+                if (remainingTime <= 0) submitExam(true);
                 remainingTime--;
             };
             updateTimer();
@@ -565,16 +639,12 @@
         function submitExam(isAuto = false) {
             const t = translations[currentLang];
             if (!isAuto && !confirm(t.confirmSubmit)) return;
-            
             stopExamTimer();
             let finalCorrect = 0;
-            
             currentQuestions.forEach(q => {
                 const savedTexts = examAnswers.get(q.J_ID) || [];
                 const correctTexts = q.shufflableOptions.filter(opt => opt.isCorrect).map(opt => opt.text);
-                
                 const isAnswerCorrect = savedTexts.length === correctTexts.length && savedTexts.sort().join(',') === correctTexts.sort().join(',');
-
                 if (isAnswerCorrect) {
                     finalCorrect++;
                     if (wrongQuestionIds.has(q.J_ID)) wrongQuestionIds.delete(q.J_ID);
@@ -582,23 +652,16 @@
                     wrongQuestionIds.add(q.J_ID);
                 }
             });
-
             saveWrongQuestions();
-
             const isPass = finalCorrect >= EXAM_CONFIG.PASS_SCORE;
             const timeSpent = EXAM_CONFIG.DURATION - (remainingTime + 1);
             const minutes = Math.floor(timeSpent / 60);
             const seconds = timeSpent % 60;
             const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
             const resultStatus = document.getElementById('result-status');
             resultStatus.textContent = isPass ? t.resultPass : t.resultFail;
             resultStatus.className = `result-status ${isPass ? 'pass' : 'fail'}`;
-            
-            document.getElementById('result-details').innerHTML = t.resultDetails(
-                finalCorrect, EXAM_CONFIG.TOTAL_QUESTIONS, finalCorrect, EXAM_CONFIG.TOTAL_QUESTIONS - finalCorrect, timeStr
-            );
-            
+            document.getElementById('result-details').innerHTML = t.resultDetails(finalCorrect, EXAM_CONFIG.TOTAL_QUESTIONS, finalCorrect, EXAM_CONFIG.TOTAL_QUESTIONS - finalCorrect, timeStr);
             showView(document.getElementById('exam-result-view'));
         }
 
@@ -620,15 +683,81 @@
                 listViewContent.innerHTML = questionsToDisplay.map((q, index) => {
                     const isMultiChoice = q.TrueAnswer.length > 1;
                     const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
+                    const correctTexts = q.TrueAnswer.split('').map(key => `${key}. ${q.Options[key]}`).join('; ');
                     const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join('');
-                    return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${q.TrueAnswer}</p></div>`;
+                    return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${correctTexts}</p></div>`;
                 }).join('');
             }
             showView(document.getElementById('list-view'));
         }
 
+        function exportProgress() {
+            const progressData = {};
+            Object.keys(LIBRARIES).forEach(key => {
+                const wrongKey = WRONG_QUESTIONS_KEY_PREFIX + key;
+                const seqKey = SEQ_PROGRESS_KEY_PREFIX + key;
+                const wrongData = localStorage.getItem(wrongKey);
+                const seqData = localStorage.getItem(seqKey);
+                if (wrongData) progressData[wrongKey] = JSON.parse(wrongData);
+                if (seqData) progressData[seqKey] = JSON.parse(seqData);
+            });
+            const jsonString = JSON.stringify(progressData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'MyProgress.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importProgress(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    Object.keys(importedData).forEach(key => {
+                        if (key.startsWith(WRONG_QUESTIONS_KEY_PREFIX) || key.startsWith(SEQ_PROGRESS_KEY_PREFIX)) {
+                            localStorage.setItem(key, JSON.stringify(importedData[key]));
+                        }
+                    });
+                    alert(translations[currentLang].importSuccess);
+                    if (currentLibraryKey) {
+                        loadProgressForCurrentLibrary();
+                    }
+                } catch (err) {
+                    alert(translations[currentLang].importFail);
+                    console.error("Import failed:", err);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
         // --- 事件监听器 ---
         document.addEventListener('DOMContentLoaded', () => {
+            allViews = document.querySelectorAll('.view');
+            langSwitcher = document.getElementById('lang-switcher');
+            examTimerDisplay = document.getElementById('exam-timer');
+            fileImporter = document.getElementById('file-importer');
+            progressPanel = document.getElementById('progress-panel');
+            togglePanelBtn = document.getElementById('toggle-panel-btn');
+            practiceHeader = document.getElementById('practice-header');
+            quizArea = document.getElementById('quiz-area');
+            actionButtons = {
+                practiceBack: document.getElementById('practice-back-btn'),
+                practicePrev: document.getElementById('practice-prev-btn'),
+                check: document.getElementById('check-btn'),
+                next: document.getElementById('next-btn'),
+                examPrev: document.getElementById('exam-prev-btn'),
+                examSubmit: document.getElementById('exam-submit-btn'),
+                examNext: document.getElementById('exam-next-btn'),
+            };
+
             const savedLang = localStorage.getItem(LANG_KEY) || 'zh';
             setLanguage(savedLang, true);
             const savedLibrary = localStorage.getItem(LAST_LIBRARY_KEY);
@@ -637,62 +766,64 @@
             } else {
                 showView(document.getElementById('library-selection-view'));
             }
-        });
 
-        langSwitcher.addEventListener('click', () => {
-            const newLang = currentLang === 'zh' ? 'en' : 'zh';
-            localStorage.setItem(LANG_KEY, newLang);
-            setLanguage(newLang);
-        });
+            langSwitcher.addEventListener('click', () => {
+                const newLang = currentLang === 'zh' ? 'en' : 'zh';
+                localStorage.setItem(LANG_KEY, newLang);
+                setLanguage(newLang);
+            });
 
-        document.querySelectorAll('#library-selection-view .btn').forEach(btn => {
-            btn.addEventListener('click', () => selectLibrary(btn.dataset.key));
-        });
+            document.querySelectorAll('#library-selection-view .btn[data-key]').forEach(btn => {
+                btn.addEventListener('click', () => selectLibrary(btn.dataset.key));
+            });
 
-        document.getElementById('change-library-btn').addEventListener('click', () => {
-            currentLibraryKey = null;
-            localStorage.removeItem(LAST_LIBRARY_KEY);
-            showView(document.getElementById('library-selection-view'));
-        });
+            document.getElementById('change-library-btn').addEventListener('click', () => {
+                currentLibraryKey = null;
+                localStorage.removeItem(LAST_LIBRARY_KEY);
+                showView(document.getElementById('library-selection-view'));
+            });
 
-        document.getElementById('start-sequential-btn').addEventListener('click', () => startQuiz('sequential'));
-        document.getElementById('start-exam-btn').addEventListener('click', () => startQuiz('exam'));
-        document.getElementById('start-wrong-btn').addEventListener('click', () => startQuiz('wrong'));
-        document.getElementById('view-all-btn').addEventListener('click', () => displayListView('all'));
-        document.getElementById('view-wrong-btn').addEventListener('click', () => displayListView('wrong'));
-        document.getElementById('back-to-menu-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
-        document.getElementById('practice-back-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
-        document.getElementById('result-back-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
+            document.getElementById('start-sequential-btn').addEventListener('click', () => startQuiz('sequential'));
+            document.getElementById('start-exam-btn').addEventListener('click', () => startQuiz('exam'));
+            document.getElementById('start-wrong-btn').addEventListener('click', () => startQuiz('wrong'));
+            document.getElementById('view-all-btn').addEventListener('click', () => displayListView('all'));
+            document.getElementById('view-wrong-btn').addEventListener('click', () => displayListView('wrong'));
+            document.getElementById('back-to-menu-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
+            actionButtons.practiceBack.addEventListener('click', () => showView(document.getElementById('main-view')));
+            document.getElementById('result-back-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
 
-        document.getElementById('reset-wrong-btn').addEventListener('click', () => {
-            const t = translations[currentLang];
-            if (confirm(t.confirmReset)) {
-                wrongQuestionIds.clear();
-                saveWrongQuestions();
-                alert(t.resetSuccess);
-            }
-        });
+            document.getElementById('reset-wrong-btn').addEventListener('click', () => {
+                const t = translations[currentLang];
+                if (confirm(t.confirmReset)) {
+                    localStorage.removeItem(WRONG_QUESTIONS_KEY_PREFIX + currentLibraryKey);
+                    localStorage.removeItem(SEQ_PROGRESS_KEY_PREFIX + currentLibraryKey);
+                    loadProgressForCurrentLibrary();
+                    alert(t.resetSuccess);
+                }
+            });
 
-        document.getElementById('check-btn').addEventListener('click', checkAnswer);
-        document.getElementById('next-btn').addEventListener('click', () => {
-            currentQuestionIndex++;
-            displayQuestion();
-        });
+            actionButtons.check.addEventListener('click', () => checkAnswer(false));
+            actionButtons.practicePrev.addEventListener('click', () => jumpToQuestion(currentQuestionIndex - 1));
+            actionButtons.next.addEventListener('click', () => jumpToQuestion(currentQuestionIndex + 1));
 
-        document.getElementById('options').addEventListener('change', saveExamAnswer);
-        document.getElementById('exam-prev-btn').addEventListener('click', () => {
-            if (currentQuestionIndex > 0) {
-                currentQuestionIndex--;
-                displayQuestion();
-            }
+            document.getElementById('options').addEventListener('change', saveExamAnswer);
+            actionButtons.examPrev.addEventListener('click', () => jumpToQuestion(currentQuestionIndex - 1));
+            actionButtons.examNext.addEventListener('click', () => jumpToQuestion(currentQuestionIndex + 1));
+            actionButtons.examSubmit.addEventListener('click', () => submitExam(false));
+
+            document.getElementById('export-progress-btn').addEventListener('click', exportProgress);
+            document.getElementById('import-progress-btn-main').addEventListener('click', () => fileImporter.click());
+            fileImporter.addEventListener('change', importProgress);
+            
+            togglePanelBtn.addEventListener('click', () => {
+                isPanelVisible = !isPanelVisible;
+                quizArea.classList.toggle('panel-visible', isPanelVisible);
+                if (window.innerWidth < 992) { // Only toggle for mobile
+                    document.getElementById('stats-container').classList.toggle('hidden', isPanelVisible);
+                }
+                togglePanelBtn.textContent = isPanelVisible ? translations[currentLang].hideStatusButton : translations[currentLang].viewStatusButton;
+            });
         });
-        document.getElementById('exam-next-btn').addEventListener('click', () => {
-            if (currentQuestionIndex < currentQuestions.length - 1) {
-                currentQuestionIndex++;
-                displayQuestion();
-            }
-        });
-        document.getElementById('exam-submit-btn').addEventListener('click', () => submitExam(false));
     </script>
 </body>
 </html>
