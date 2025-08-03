@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>业余无线电台题库练习</title>
-    <link rel="icon" type="image/jpeg" href="HAM.jpeg"> <!-- <--- 就是这一行 -->
+    <link rel="icon" type="image/jpeg" href="HAM.jpeg">
     <style>
         /* --- 页面整体样式 --- */
         body {
@@ -305,9 +305,11 @@
             localStorage.setItem(LAST_LIBRARY_KEY, key);
             allQuestions = []; // Reset questions
             
-            const t = translations[currentLang];
-            document.title = t.mainTitle(LIBRARIES[key].name[currentLang]);
-            document.getElementById('main-title').textContent = t.mainTitle(LIBRARIES[key].name[currentLang]);
+            // ***** FIX STARTS HERE *****
+            // Call setLanguage to update all UI text for the newly selected library.
+            // This ensures all buttons get their text content immediately.
+            setLanguage(currentLang);
+            // ***** FIX ENDS HERE *****
 
             // Disable buttons until loaded
             document.querySelectorAll('#main-view .btn').forEach(b => b.disabled = true);
