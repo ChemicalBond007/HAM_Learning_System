@@ -24,6 +24,9 @@
         #lang-switcher:hover { background-color: #eceff1; }
         h1, h2 { text-align: center; color: #1a237e; }
         h1 { margin-bottom: 25px; padding-top: 20px; }
+        
+        /* --- 新增规则：将题目文本左对齐 --- */
+        #question { text-align: left; }
 
         /* --- 按钮样式 --- */
         .btn {
@@ -55,7 +58,6 @@
         #main-view .controls { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
 
         /* --- 答题/考试区域 --- */
-        #question { font-size: 20px; font-weight: 600; margin-bottom: 20px; line-height: 1.6; }
         .question-type { color: #3949ab; font-weight: bold; font-size: 16px; margin-right: 10px; }
         .options { display: flex; flex-direction: column; gap: 15px; }
         .option { display: block; padding: 15px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
@@ -820,6 +822,7 @@
                 quizArea.classList.toggle('panel-visible', isPanelVisible);
                 if (window.innerWidth < 992) { // Only toggle for mobile
                     document.getElementById('stats-container').classList.toggle('hidden', isPanelVisible);
+                    progressPanel.style.display = isPanelVisible ? 'grid' : 'none';
                 }
                 togglePanelBtn.textContent = isPanelVisible ? translations[currentLang].hideStatusButton : translations[currentLang].viewStatusButton;
             });
