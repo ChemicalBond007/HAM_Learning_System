@@ -348,14 +348,20 @@
                 showView(document.getElementById('loading-view'));
                 try {
                     const examQuestions = await apiFetch('/api/exam/start', { method: 'POST', body: JSON.stringify({ category: currentLibraryKey }) });
-                    currentQuestions = examQuestions.map(q => ({ 
-                        ...q, 
-                        shufflableOptions: Object.keys(q.Options).map(optKey => ({ 
-                            key: optKey, 
-                            text: q.Options[optKey], 
-                            isCorrect: Array.isArray(q.TrueAnswer) && q.TrueAnswer.includes(optKey) 
-                        })) 
-                    }));
+                    currentQuestions = examQuestions.map(q => {
+                        // 确保 TrueAnswer 是数组
+                        if (typeof q.TrueAnswer === 'string') {
+                            q.TrueAnswer = q.TrueAnswer.split('');
+                        }
+                        return {
+                            ...q,
+                            shufflableOptions: Object.keys(q.Options).map(optKey => ({
+                                key: optKey,
+                                text: q.Options[optKey],
+                                isCorrect: Array.isArray(q.TrueAnswer) && q.TrueAnswer.includes(optKey)
+                            }))
+                        };
+                    });
                     currentQuestionIndex = 0;
                     examAnswers.clear();
                     actionButtons.examPrev.classList.remove('hidden');

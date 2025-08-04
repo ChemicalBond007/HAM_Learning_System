@@ -66,17 +66,14 @@ def get_questions_api():
     category = request.args.get('category')
     if not category:
         return jsonify({"error": "Category is required"}), 400
-    
-    try:
-        # 从数据库获取问题，但不返回答案，修复了之前逻辑错误和答案泄露风险
-        questions = db.get_questions(category, projection={"TrueAnswer": 0})
-        # 将 ObjectId 转换为字符串
-        for q in questions:
-            q['_id'] = str(q['_id'])
-        return jsonify(questions)
-    except Exception as e:
-        app.logger.error(f"Error fetching questions for category {category}: {e}")
-        return jsonify({"error": "An unexpected error occurred while fetching questions."}), 500
+        
+    # 从数据库获取问题，答案已经是数组格式，无需转换
+    questions = db.get_questions(category)
+    # 将 ObjectId 转换为字符串
+    for q in questions:
+        q['_id'] = str(q['_id'])
+        
+    return jsonify(questions)
 
 @app.route('/api/progress', methods=['GET'])
 @token_required
