@@ -80,3 +80,10 @@ def update_user_progress(user_id, category, question_jid, is_correct):
         return_document=ReturnDocument.AFTER
     )
     return updated_user is not None
+
+def reset_user_progress(user_id, category):
+    """重置用户在特定分类下的进度"""
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$unset": {f"progress.{category}": ""}}
+    )

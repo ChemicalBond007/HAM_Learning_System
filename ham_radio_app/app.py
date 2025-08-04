@@ -100,6 +100,22 @@ def get_progress_api():
         app.logger.error(f"Error fetching progress for user {g.current_user.get('_id')}: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
+@app.route('/api/progress/reset', methods=['POST'])
+@token_required
+def reset_progress_api():
+    """重置用户在特定分类下的进度"""
+    data = request.get_json()
+    category = data.get('category')
+    if not category:
+        return jsonify({"error": "Category is required"}), 400
+        
+    try:
+        db.reset_user_progress(g.current_user['_id'], category)
+        return jsonify({"message": f"Progress for category '{category}' has been reset."})
+    except Exception as e:
+        app.logger.error(f"Error resetting progress for user {g.current_user.get('_id')}: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
 @app.route('/api/check-answer', methods=['POST'])
 @token_required
 def check_answer_api():

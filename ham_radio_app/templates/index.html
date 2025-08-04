@@ -606,7 +606,23 @@
             document.getElementById('back-to-menu-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
             actionButtons.practiceBack.addEventListener('click', () => showView(document.getElementById('main-view')));
             document.getElementById('result-back-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
-            document.getElementById('reset-wrong-btn').addEventListener('click', async () => { const t = translations[currentLang]; if (confirm(t.confirmReset)) { wrongQuestionIds.clear(); sequentialProgress.clear(); updateWrongButtons(); alert(t.resetSuccess); } });
+            document.getElementById('reset-wrong-btn').addEventListener('click', async () => {
+                const t = translations[currentLang];
+                if (confirm(t.confirmReset)) {
+                    try {
+                        await apiFetch('/api/progress/reset', {
+                            method: 'POST',
+                            body: JSON.stringify({ category: currentLibraryKey })
+                        });
+                        wrongQuestionIds.clear();
+                        sequentialProgress.clear();
+                        updateWrongButtons();
+                        alert(t.resetSuccess);
+                    } catch (error) {
+                        alert('Failed to reset progress: ' + error.message);
+                    }
+                }
+            });
             actionButtons.check.addEventListener('click', () => checkAnswer(false));
             actionButtons.practicePrev.addEventListener('click', () => jumpToQuestion(currentQuestionIndex - 1));
             actionButtons.next.addEventListener('click', () => jumpToQuestion(currentQuestionIndex + 1));
