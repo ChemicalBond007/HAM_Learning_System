@@ -1,2 +1,2 @@
 # HAM_Learning_System
-Maybe you need to know that the Branch Server-centered is now the main branch.
+> First of all, this is a playful project that is very fast-developed. So __do not__ try to use this in production field.
