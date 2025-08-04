@@ -519,7 +519,31 @@
             } catch (error) { alert('Failed to submit exam: ' + error.message); }
         }
 
-        function displayListView(mode) { const t = translations[currentLang]; let questionsToDisplay; const listViewTitle = document.getElementById('list-view-title'); if (mode === 'all') { listViewTitle.textContent = t.allQuestionsTitle; questionsToDisplay = allQuestions; } else { listViewTitle.textContent = t.wrongQuestionsTitle; questionsToDisplay = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID)); } const listViewContent = document.getElementById('list-view-content'); if (questionsToDisplay.length === 0) { listViewContent.innerHTML = `<p style="text-align:center; color:#777; padding: 20px 0;">${t.emptyList}</p>`; } else { listViewContent.innerHTML = questionsToDisplay.map((q, index) => { const isMultiChoice = q.TrueAnswer.length > 1; const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice; const correctTexts = q.TrueAnswer.split('').map(key => `${key}. ${q.Options[key]}`).join('; '); const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join(''); return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${correctTexts}</p></div>`; }).join(''); } showView(document.getElementById('list-view')); }
+        function displayListView(mode) { 
+            const t = translations[currentLang]; 
+            let questionsToDisplay; 
+            const listViewTitle = document.getElementById('list-view-title'); 
+            if (mode === 'all') { 
+                listViewTitle.textContent = t.allQuestionsTitle; 
+                questionsToDisplay = allQuestions; 
+            } else { 
+                listViewTitle.textContent = t.wrongQuestionsTitle; 
+                questionsToDisplay = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID)); 
+            } 
+            const listViewContent = document.getElementById('list-view-content'); 
+            if (questionsToDisplay.length === 0) { 
+                listViewContent.innerHTML = `<p style="text-align:center; color:#777; padding: 20px 0;">${t.emptyList}</p>`; 
+            } else { 
+                listViewContent.innerHTML = questionsToDisplay.map((q, index) => {
+                    const isMultiChoice = Array.isArray(q.TrueAnswer) && q.TrueAnswer.length > 1;
+                    const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
+                    const correctTexts = Array.isArray(q.TrueAnswer) ? q.TrueAnswer.map(key => `${key}. ${q.Options[key] || ''}`).join('; ') : '';
+                    const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join('');
+                    return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${correctTexts}</p></div>`;
+                }).join(''); 
+            } 
+            showView(document.getElementById('list-view')); 
+        }
         
         function generateProgressPanel() {
             progressPanel.innerHTML = '';
