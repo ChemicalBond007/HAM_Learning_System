@@ -55,6 +55,31 @@ def import_questions():
     questions_collection.create_index([("category", 1)])
     print("Created indexes on J_ID and category.")
 
-if __name__ == "__main__":
+def import_questions_from_file(file_path, category):
+    """从单个JSON文件导入问题到数据库"""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    questions_to_insert = []
+    for q in data:
+        # 确保 TrueAnswer 是一个列表
+        if isinstance(q.get('TrueAnswer'), str):
+            q['TrueAnswer'] = list(q['TrueAnswer'])
+        
+        existing_question = questions_collection.find_one({'J_ID': q['J_ID']})
+        if not existing_question:
+            q['category'] = category
+            questions_to_insert.append(q)
+
+    if questions_to_insert:
+        questions_collection.insert_many(questions_to_insert)
+        print(f"Imported {len(questions_to_insert)} new questions from {file_path} into category '{category}'.")
+    else:
+        print(f"No new questions to import from {file_path}.")
+
+def main():
     import_questions()
     client.close()
+
+if __name__ == "__main__":
+    main()

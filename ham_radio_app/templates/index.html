@@ -307,7 +307,14 @@
                     apiFetch(`/api/progress?category=${key}`)
                 ]);
                 if (!Array.isArray(questionsData)) throw new Error(`Data for questions is not an array!`);
-                allQuestions = questionsData.map(q => ({ ...q, shufflableOptions: Object.keys(q.Options).map(optKey => ({ key: optKey, text: q.Options[optKey], isCorrect: q.TrueAnswer.includes(optKey) })) }));
+                allQuestions = questionsData.map(q => ({ 
+                    ...q, 
+                    shufflableOptions: Object.keys(q.Options).map(optKey => ({ 
+                        key: optKey, 
+                        text: q.Options[optKey], 
+                        isCorrect: Array.isArray(q.TrueAnswer) && q.TrueAnswer.includes(optKey) 
+                    })) 
+                }));
                 wrongQuestionIds = new Set(progressData.wrong_ids || []);
                 sequentialProgress = new Map(Object.entries(progressData.sequential || {}));
                 document.getElementById('status-message').textContent = translations[currentLang].loadSuccess(allQuestions.length);
@@ -341,7 +348,20 @@
                 showView(document.getElementById('loading-view'));
                 try {
                     const examQuestions = await apiFetch('/api/exam/start', { method: 'POST', body: JSON.stringify({ category: currentLibraryKey }) });
-                    currentQuestions = examQuestions.map(q => ({ ...q, shufflableOptions: Object.keys(q.Options).map(optKey => ({ key: optKey, text: q.Options[optKey], isCorrect: q.TrueAnswer.includes(optKey) })) }));
+                    currentQuestions = examQuestions.map(q => {
+                        // 确保 TrueAnswer 是数组
+                        if (typeof q.TrueAnswer === 'string') {
+                            q.TrueAnswer = q.TrueAnswer.split('');
+                        }
+                        return {
+                            ...q,
+                            shufflableOptions: Object.keys(q.Options).map(optKey => ({
+                                key: optKey,
+                                text: q.Options[optKey],
+                                isCorrect: Array.isArray(q.TrueAnswer) && q.TrueAnswer.includes(optKey)
+                            }))
+                        };
+                    });
                     currentQuestionIndex = 0;
                     examAnswers.clear();
                     actionButtons.examPrev.classList.remove('hidden');
@@ -399,7 +419,7 @@
                 actionButtons.check.disabled = sequentialProgress.has(currentQuestions[currentQuestionIndex].J_ID);
             }
             const question = currentQuestions[currentQuestionIndex];
-            const isMultiChoice = question.TrueAnswer.length > 1;
+            const isMultiChoice = Array.isArray(question.TrueAnswer) && question.TrueAnswer.length > 1;
             const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
             document.getElementById('question').innerHTML = `<span class="question-type">${questionTypeTag}</span>${question.Question}`;
             const optionsDiv = document.getElementById('options');
@@ -505,7 +525,31 @@
             } catch (error) { alert('Failed to submit exam: ' + error.message); }
         }
 
-        function displayListView(mode) { const t = translations[currentLang]; let questionsToDisplay; const listViewTitle = document.getElementById('list-view-title'); if (mode === 'all') { listViewTitle.textContent = t.allQuestionsTitle; questionsToDisplay = allQuestions; } else { listViewTitle.textContent = t.wrongQuestionsTitle; questionsToDisplay = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID)); } const listViewContent = document.getElementById('list-view-content'); if (questionsToDisplay.length === 0) { listViewContent.innerHTML = `<p style="text-align:center; color:#777; padding: 20px 0;">${t.emptyList}</p>`; } else { listViewContent.innerHTML = questionsToDisplay.map((q, index) => { const isMultiChoice = q.TrueAnswer.length > 1; const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice; const correctTexts = q.TrueAnswer.split('').map(key => `${key}. ${q.Options[key]}`).join('; '); const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join(''); return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${correctTexts}</p></div>`; }).join(''); } showView(document.getElementById('list-view')); }
+        function displayListView(mode) { 
+            const t = translations[currentLang]; 
+            let questionsToDisplay; 
+            const listViewTitle = document.getElementById('list-view-title'); 
+            if (mode === 'all') { 
+                listViewTitle.textContent = t.allQuestionsTitle; 
+                questionsToDisplay = allQuestions; 
+            } else { 
+                listViewTitle.textContent = t.wrongQuestionsTitle; 
+                questionsToDisplay = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID)); 
+            } 
+            const listViewContent = document.getElementById('list-view-content'); 
+            if (questionsToDisplay.length === 0) { 
+                listViewContent.innerHTML = `<p style="text-align:center; color:#777; padding: 20px 0;">${t.emptyList}</p>`; 
+            } else { 
+                listViewContent.innerHTML = questionsToDisplay.map((q, index) => {
+                    const isMultiChoice = Array.isArray(q.TrueAnswer) && q.TrueAnswer.length > 1;
+                    const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
+                    const correctTexts = Array.isArray(q.TrueAnswer) ? q.TrueAnswer.map(key => `${key}. ${q.Options[key] || ''}`).join('; ') : '';
+                    const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join('');
+                    return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${correctTexts}</p></div>`;
+                }).join(''); 
+            } 
+            showView(document.getElementById('list-view')); 
+        }
         
         function generateProgressPanel() {
             progressPanel.innerHTML = '';

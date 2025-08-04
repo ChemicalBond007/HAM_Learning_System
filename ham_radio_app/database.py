@@ -59,20 +59,24 @@ def update_user_progress(user_id, category, question_jid, is_correct):
     """更新用户的练习进度和错题集"""
     status = "correct" if is_correct else "incorrect"
     
-    # 更新顺序练习进度
-    update_query = {f"progress.{category}.sequential.{question_jid}": status}
+    update_operations = {
+        "$set": {
+            f"progress.{category}.sequential.{question_jid}": status,
+            f"progress.{category}.last_answered": question_jid
+        }
+    }
     
-    # 更新错题集
     if is_correct:
         # 如果答对，从错题集中移除
-        update_query[f"$pull"] = {f"progress.{category}.wrong_ids": question_jid}
+        update_operations["$pull"] = {f"progress.{category}.wrong_ids": question_jid}
     else:
         # 如果答错，添加到错题集（如果不存在）
-        update_query[f"$addToSet"] = {f"progress.{category}.wrong_ids": question_jid}
+        update_operations["$addToSet"] = {f"progress.{category}.wrong_ids": question_jid}
 
     updated_user = users_collection.find_one_and_update(
         {"_id": ObjectId(user_id)},
-        update_query,
+        update_operations,
+        upsert=True, # 如果 progress 或 category 不存在，则创建它们
         return_document=ReturnDocument.AFTER
     )
     return updated_user is not None
