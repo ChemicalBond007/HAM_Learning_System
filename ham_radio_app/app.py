@@ -77,6 +77,13 @@ def get_questions_api():
                 q['TrueAnswer'] = list(q['TrueAnswer'])
             elif not isinstance(q['TrueAnswer'], list):
                 q['TrueAnswer'] = [q['TrueAnswer']]
+        
+        # 随机打乱选项顺序
+        if 'options' in q and isinstance(q['options'], dict):
+            options_items = list(q['options'].items())
+            random.shuffle(options_items)
+            q['options'] = dict(options_items)
+
     return jsonify(questions)
 
 @app.route('/api/progress', methods=['GET'])

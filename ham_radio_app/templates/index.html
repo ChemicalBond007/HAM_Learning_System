@@ -425,7 +425,7 @@
             const optionsDiv = document.getElementById('options');
             optionsDiv.innerHTML = '';
             let optionsToDisplay = [...question.shufflableOptions].sort(() => Math.random() - 0.5);
-            const savedAnswerTexts = currentMode === 'exam' ? (examAnswers.get(question.J_ID) || []) : [];
+            const savedAnswerKeys = currentMode === 'exam' ? (examAnswers.get(question.J_ID) || []) : [];
             optionsToDisplay.forEach((opt, index) => {
                 const displayLetter = String.fromCharCode(65 + index);
                 const optionLabel = document.createElement('label');
@@ -436,7 +436,7 @@
                 input.value = opt.text;
                 input.dataset.key = opt.key;
                 input.dataset.isCorrect = opt.isCorrect;
-                if (currentMode === 'exam' && savedAnswerTexts.includes(opt.text)) input.checked = true;
+                if (currentMode === 'exam' && savedAnswerKeys.includes(opt.key)) input.checked = true;
                 optionLabel.appendChild(input);
                 optionLabel.appendChild(document.createTextNode(` ${displayLetter}. ${opt.text}`));
                 optionsDiv.appendChild(optionLabel);
@@ -451,8 +451,8 @@
             if (currentMode !== 'exam') return;
             const question = currentQuestions[currentQuestionIndex];
             if (!question) return;
-            const selectedTexts = Array.from(document.querySelectorAll('#options input:checked')).map(i => i.value);
-            examAnswers.set(question.J_ID, selectedTexts);
+            const selectedKeys = Array.from(document.querySelectorAll('#options input:checked')).map(i => i.dataset.key);
+            examAnswers.set(question.J_ID, selectedKeys);
             // FIX: Update exam panel to show answered status
             const panelBtn = document.querySelector(`.panel-btn[data-index="${currentQuestionIndex}"]`);
             if (panelBtn) panelBtn.classList.add('answered');
@@ -505,11 +505,8 @@
             if (!isAuto && !confirm(t.confirmSubmit)) return;
             stopExamTimer();
             const answersToSubmit = {};
-            currentQuestions.forEach(q => {
-                const savedTexts = examAnswers.get(q.J_ID) || [];
-                const selectedKeys = [];
-                q.shufflableOptions.forEach(opt => { if (savedTexts.includes(opt.text)) selectedKeys.push(opt.key); });
-                answersToSubmit[q.J_ID] = selectedKeys;
+            examAnswers.forEach((keys, jid) => {
+                answersToSubmit[jid] = keys;
             });
             try {
                 const result = await apiFetch('/api/exam/submit', { method: 'POST', body: JSON.stringify({ answers: answersToSubmit, category: currentLibraryKey }) });
