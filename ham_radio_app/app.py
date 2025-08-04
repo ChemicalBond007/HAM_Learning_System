@@ -91,24 +91,34 @@ def get_progress_api():
 @token_required
 def check_answer_api():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     question_jid = data.get('question_jid')
     user_answer_keys = sorted(data.get('user_answer', []))
     category = data.get('category')
 
-    question = db.get_question_by_jid(question_jid)
-    if not question:
-        return jsonify({"error": "Question not found"}), 404
+    if not all([question_jid, category]):
+        return jsonify({"error": "question_jid and category are required"}), 400
 
-    correct_answer_keys = sorted(list(question['TrueAnswer']))
-    is_correct = (user_answer_keys == correct_answer_keys)
-    
-    # 更新用户进度
-    db.update_user_progress(g.current_user['_id'], category, question_jid, is_correct)
-    
-    return jsonify({
-        "is_correct": is_correct,
-        "correct_answer": question['TrueAnswer']
-    })
+    try:
+        question = db.get_question_by_jid(question_jid)
+        if not question:
+            return jsonify({"error": "Question not found"}), 404
+
+        correct_answer_keys = sorted(list(question['TrueAnswer']))
+        is_correct = (user_answer_keys == correct_answer_keys)
+        
+        # 更新用户进度
+        db.update_user_progress(g.current_user['_id'], category, question_jid, is_correct)
+        
+        return jsonify({
+            "is_correct": is_correct,
+            "correct_answer": question['TrueAnswer']
+        })
+    except Exception as e:
+        app.logger.error(f"Error checking answer for question {question_jid}: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 # --- 考试逻辑 API ---
 @app.route('/api/exam/start', methods=['POST'])
@@ -142,18 +152,28 @@ def submit_exam():
     category = data.get('category')
 
     score = 0
+    results = []
     for jid, user_ans in answers.items():
         question = db.get_question_by_jid(jid)
         if question:
-            is_correct = sorted(user_ans) == sorted(list(question['TrueAnswer']))
+            correct_answer_keys = sorted(list(question['TrueAnswer']))
+            is_correct = sorted(user_ans) == correct_answer_keys
             if is_correct:
                 score += 1
+            
+            results.append({
+                "question_jid": jid,
+                "is_correct": is_correct,
+                "user_answer": user_ans,
+                "correct_answer": question['TrueAnswer']
+            })
             # 提交考试后，同样更新错题集
             db.update_user_progress(g.current_user['_id'], category, jid, is_correct)
             
     return jsonify({
         "score": score,
-        "total": len(answers)
+        "total": len(answers),
+        "results": results
     })
 
 if __name__ == '__main__':
