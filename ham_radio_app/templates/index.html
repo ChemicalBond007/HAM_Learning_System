@@ -465,6 +465,7 @@
             const feedbackDiv = document.getElementById('feedback');
             const question = currentQuestions[currentQuestionIndex];
             if (!isReview) {
+                // 修复：顺序模式下提交选项 key 数组
                 const selectedKeys = Array.from(document.querySelectorAll('#options input:checked')).map(i => i.dataset.key);
                 try {
                     const result = await apiFetch('/api/check-answer', { method: 'POST', body: JSON.stringify({ question_jid: question.J_ID, user_answer: selectedKeys, category: currentLibraryKey }) });
