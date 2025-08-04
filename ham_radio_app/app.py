@@ -67,12 +67,16 @@ def get_questions_api():
     if not category:
         return jsonify({"error": "Category is required"}), 400
         
-    # 从数据库获取问题，答案已经是数组格式，无需转换
+    # 从数据库获取问题
     questions = db.get_questions(category)
-    # 将 ObjectId 转换为字符串
+    # 将 ObjectId 转换为字符串，并确保 TrueAnswer 始终为数组
     for q in questions:
         q['_id'] = str(q['_id'])
-        
+        if 'TrueAnswer' in q:
+            if isinstance(q['TrueAnswer'], str):
+                q['TrueAnswer'] = list(q['TrueAnswer'])
+            elif not isinstance(q['TrueAnswer'], list):
+                q['TrueAnswer'] = [q['TrueAnswer']]
     return jsonify(questions)
 
 @app.route('/api/progress', methods=['GET'])
@@ -145,6 +149,12 @@ def start_exam():
             q = db.get_question_by_jid(jid)
             if q:
                 q['_id'] = str(q['_id']) # 序列化 ObjectId
+                # 确保 TrueAnswer 始终为数组
+                if 'TrueAnswer' in q:
+                    if isinstance(q['TrueAnswer'], str):
+                        q['TrueAnswer'] = list(q['TrueAnswer'])
+                    elif not isinstance(q['TrueAnswer'], list):
+                        q['TrueAnswer'] = [q['TrueAnswer']]
                 del q['TrueAnswer'] # 安全起见，不将答案发送给客户端
                 exam_questions.append(q)
 
