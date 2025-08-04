@@ -1,6 +1,6 @@
 import os
 import random
-from flask import Flask, jsonify, request, g
+from flask import Flask, jsonify, request, g, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
 import database as db
@@ -13,6 +13,14 @@ app = Flask(__name__)
 # 允许所有来源的跨域请求，方便本地开发
 CORS(app) 
 
+# NEW: Add a route to serve the frontend application
+@app.route('/')
+def serve_app():
+    """
+    Serves the main index.html file which is the entry point of our frontend app.
+    Flask will automatically look for this file in the 'templates' folder.
+    """
+    return render_template('index.html')
 # --- 用户认证 API ---
 
 @app.route('/api/register', methods=['POST'])

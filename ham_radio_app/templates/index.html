@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业余无线电台题库练习</title>
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='HAM.jpeg') }}">
+    <style>
+        /* CSS 样式与之前相同 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+        .container { width: 100%; max-width: 1300px; background-color: #fff; padding: 25px 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); position: relative; }
+        #lang-switcher { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #546e7a; cursor: pointer; font-size: 14px; font-weight: 500; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s; z-index: 10; }
+        #lang-switcher:hover { background-color: #eceff1; }
+        h1, h2 { text-align: center; color: #1a237e; }
+        h1 { margin-bottom: 25px; padding-top: 20px; }
+        #question { text-align: left; }
+        .btn { padding: 12px 20px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; }
+        .btn-large { padding: 15px 30px; font-size: 18px; }
+        .btn-primary { background-color: #3949ab; color: white; }
+        .btn-primary:hover { background-color: #283593; }
+        .btn-secondary { background-color: #546e7a; color: white; }
+        .btn-secondary:hover { background-color: #455a64; }
+        .btn-info { background-color: #0288d1; color: white; }
+        .btn-info:hover { background-color: #0277bd; }
+        .btn-danger { background-color: #d32f2f; color: white; }
+        .btn-danger:hover { background-color: #c62828; }
+        .btn-success { background-color: #2e7d32; color: white; }
+        .btn-success:hover { background-color: #1b5e20; }
+        .btn:disabled { background-color: #bdbdbd; cursor: not-allowed; }
+        .view { display: none; }
+        .hidden { display: none; }
+        #auth-view .form-container { max-width: 400px; margin: 30px auto; display: flex; flex-direction: column; gap: 15px; }
+        #auth-view input { padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+        #auth-view .auth-actions { display: flex; justify-content: space-between; align-items: center; }
+        #auth-view .toggle-link { color: #3949ab; cursor: pointer; text-decoration: underline; }
+        #auth-error { color: #c62828; text-align: center; margin-top: 10px; font-weight: bold; }
+        #library-selection-view .controls, #main-view .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+        #library-selection-view .controls { flex-direction: column; align-items: center; margin-top: 30px; gap: 20px; }
+        #main-view .controls { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
+        .question-type { color: #3949ab; font-weight: bold; font-size: 16px; margin-right: 10px; }
+        .options { display: flex; flex-direction: column; gap: 15px; }
+        .option { display: block; padding: 15px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+        .option input { margin-right: 12px; transform: scale(1.2); vertical-align: middle; }
+        .option:hover { background-color: #e8eaf6; border-color: #3949ab; }
+        .option.correct { background-color: #e8f5e9; border-color: #4caf50; font-weight: bold; }
+        .option.incorrect { background-color: #ffebee; border-color: #f44336; }
+        #feedback { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; }
+        .feedback-correct { background-color: #4caf50; color: white; }
+        .feedback-incorrect { background-color: #f44336; color: white; }
+        .actions { margin-top: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .practice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        #stats-container { display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 10px 20px; padding: 10px; background-color: #f8f9fa; border-radius: 6px; font-size: 14px; flex-grow: 1; }
+        #stats-container span { font-weight: 500; }
+        #stats-correct { color: #2e7d32; }
+        #stats-incorrect { color: #c62828; }
+        #progress-panel { display: none; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 180px; overflow-y: auto; background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px; }
+        .panel-btn { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; }
+        .panel-btn.unanswered { background-color: #e0e0e0; }
+        .panel-btn.correct { background-color: #a5d6a7; border-color: #2e7d32; }
+        .panel-btn.incorrect { background-color: #ef9a9a; border-color: #c62828; }
+        .panel-btn.answered { background-color: #bbdefb; border-color: #3949ab; } /* New style for answered exam questions */
+        .panel-btn.active { transform: scale(1.1); box-shadow: 0 0 10px rgba(57, 73, 171, 0.7); border-color: #3949ab; font-weight: bold; }
+        #exam-timer { font-size: 18px; font-weight: bold; color: #d32f2f; text-align: center; margin-bottom: 15px; }
+        #quiz-body-wrapper { display: block; }
+        #question-content { flex: 1; transition: margin-right 0.3s ease; }
+        @media (min-width: 992px) {
+            #quiz-body-wrapper { display: flex; }
+            #progress-panel { display: grid; width: 0; opacity: 0; overflow: hidden; transition: all 0.3s ease; padding: 0; margin-left: 0; max-height: 500px; }
+            #quiz-area.panel-visible #progress-panel { width: 280px; opacity: 1; padding: 15px; margin-left: 20px; }
+        }
+        .list-view-header, .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #list-view-content { max-height: 60vh; overflow-y: auto; padding-right: 15px; }
+        .list-item { border-bottom: 1px solid #e0e0e0; padding: 15px 0; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item-question { font-size: 17px; font-weight: 500; margin: 0 0 10px 0; }
+        .list-item-options p { margin: 5px 0 5px 20px; color: #555; }
+        .list-item-answer { margin-top: 10px; font-weight: bold; color: #4caf50; }
+        #exam-result-view .result-summary { text-align: center; }
+        #exam-result-view .result-status { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
+        #exam-result-view .result-status.pass { color: #2e7d32; }
+        #exam-result-view .result-status.fail { color: #c62828; }
+        #exam-result-view .result-details { font-size: 18px; line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="lang-switcher"></button>
+        <div id="loading-view" class="view"><h2 id="loading-text"></h2></div>
+        <div id="auth-view" class="view">
+            <h1 id="auth-title"></h1>
+            <div class="form-container">
+                <input type="text" id="username-input" placeholder="Username">
+                <input type="password" id="password-input" placeholder="Password">
+                <button id="auth-submit-btn" class="btn btn-primary"></button>
+            </div>
+            <div id="auth-error"></div>
+            <div class="auth-actions">
+                <span id="auth-toggle-text"></span>
+                <a id="auth-toggle-link" class="toggle-link"></a>
+            </div>
+        </div>
+        <div id="library-selection-view" class="view">
+            <h1 id="selection-title"></h1>
+            <div class="controls">
+                <button class="btn btn-large btn-primary" data-key="A"></button>
+                <button class="btn btn-large btn-primary" data-key="B"></button>
+                <button class="btn btn-large btn-primary" data-key="C"></button>
+                <button class="btn btn-large btn-secondary" data-key="Main"></button>
+            </div>
+        </div>
+        <div id="main-view" class="view">
+            <h1 id="main-title"></h1>
+            <div id="user-info" style="text-align: center; margin-bottom: 20px; font-size: 16px; color: #555;"></div>
+            <div class="controls">
+                <button id="start-sequential-btn" class="btn btn-primary" disabled></button>
+                <button id="start-exam-btn" class="btn btn-primary" disabled></button>
+                <button id="start-wrong-btn" class="btn btn-secondary" disabled></button>
+                <button id="view-all-btn" class="btn btn-info" disabled></button>
+                <button id="view-wrong-btn" class="btn btn-info" disabled></button>
+                <button id="reset-wrong-btn" class="btn btn-danger"></button>
+                <button id="change-library-btn" class="btn btn-secondary"></button>
+                <button id="logout-btn" class="btn btn-danger"></button>
+            </div>
+            <div id="status-message" style="text-align: center; padding: 10px; color: #555;"></div>
+        </div>
+        <div id="quiz-area" class="view">
+            <div id="exam-timer" class="hidden"></div>
+            <div id="practice-header" class="practice-header hidden">
+                <div id="stats-container">
+                    <span id="stats-answered"></span>
+                    <span id="stats-remaining"></span>
+                    <span id="stats-correct"></span>
+                    <span id="stats-incorrect"></span>
+                </div>
+                <button id="toggle-panel-btn" class="btn btn-info"></button>
+            </div>
+            <div id="quiz-body-wrapper">
+                <div id="question-content">
+                    <h2 id="question"></h2>
+                    <div class="options" id="options"></div>
+                    <div id="feedback" class="hidden"></div>
+                    <div class="actions">
+                        <button id="practice-back-btn" class="btn btn-secondary hidden"></button>
+                        <button id="practice-prev-btn" class="btn btn-secondary hidden"></button>
+                        <button id="exam-prev-btn" class="btn btn-secondary hidden"></button>
+                        <span style="flex-grow: 1;"></span>
+                        <button id="check-btn" class="btn btn-primary hidden"></button>
+                        <button id="exam-submit-btn" class="btn btn-danger hidden"></button>
+                        <span style="flex-grow: 1;"></span>
+                        <button id="next-btn" class="btn btn-primary hidden"></button>
+                        <button id="exam-next-btn" class="btn btn-primary hidden"></button>
+                    </div>
+                </div>
+                <div id="progress-panel"></div>
+            </div>
+        </div>
+        <div id="list-view" class="view">
+            <div class="list-view-header">
+                <h2 id="list-view-title"></h2>
+                <button id="back-to-menu-btn" class="btn btn-primary"></button>
+            </div>
+            <div id="list-view-content"></div>
+        </div>
+        <div id="exam-result-view" class="view">
+            <h2 id="result-title"></h2>
+            <div class="result-summary">
+                <div id="result-status" class="result-status"></div>
+                <div id="result-details" class="result-details"></div>
+            </div>
+            <div class="actions" style="justify-content: center; margin-top: 30px;">
+                <button id="result-back-btn" class="btn btn-primary"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '';
+        const LIBRARIES = { 'A':{name:{zh:'A类题库',en:'A-Class Library'}},'B':{name:{zh:'B类题库',en:'B-Class Library'}},'C':{name:{zh:'C类题库',en:'C-Class Library'}},'Main':{name:{zh:'总题库',en:'Main Library'}}};
+        const EXAM_CONFIG = { DURATION: 40 * 60, TOTAL_QUESTIONS: 30, PASS_SCORE: 25 };
+        const translations = {
+            zh: { lang: 'zh-CN', langToggle: 'English', loading: '加载中...', loginTitle: '登录', registerTitle: '注册', loginButton: '登录', registerButton: '注册', loginToggleText: '已有账户？', loginToggleLink: '立即登录', registerToggleText: '还没有账户？', registerToggleLink: '立即注册', logoutButton: '退出登录', welcomeUser: user => `欢迎, ${user}`, selectionTitle: '请选择题库', mainTitle: libName => `业余无线电台 ${libName} 练习`, seqButton: '顺序练习', examButton: '模拟考试', practiceWrongButton: c => `练习错题 (${c})`, viewAllButton: '查看题库', viewWrongButton: c => `查看错题 (${c})`, resetWrongButton: '清空进度', changeLibraryButton: '切换题库', loadSuccess: c => `题库加载成功！共 ${c} 题。`, loadFail: '题库加载失败！请检查网络连接或联系管理员。', statsAnswered: c => `已答: ${c}`, statsRemaining: c => `未答: ${c}`, statsCorrect: c => `正确: ${c}`, statsIncorrect: c => `错误: ${c}`, viewStatusButton: '查看答题状态', hideStatusButton: '隐藏答题状态', singleChoice: '[单选题]', multiChoice: '[多选题]', checkAnswer: '核对答案', nextQuestion: '下一题', examPrev: '上一题', examNext: '下一题', examSubmit: '交卷', practicePrevButton: '上一题', confirmSubmit: '确定要交卷吗？', timeRemaining: '剩余时间', examResultTitle: '考试结果', resultPass: '及格', resultFail: '不及格', resultDetails: (score, total, correct, incorrect, time) => `分数: ${score}/${total}<br>正确: ${correct} | 错误: ${incorrect}<br>用时: ${time}`, correct: '回答正确！', incorrectPrefix: '回答错误！正确答案是: ', quizComplete: c => `练习完成！本次共练习 ${c} 题。`, allQuestionsTitle: '全部题库', wrongQuestionsTitle: '我的错题集', emptyList: '这里是空的！', backToMenu: '返回主菜单', practiceBackButton: '返回主菜单', correctAnswerLabel: '正确答案', confirmReset: '确定要清空当前题库的所有进度（包括错题和顺序练习）吗？此操作不可恢复！', resetSuccess: '进度已清空。', noWrongQuestions: '没有错题可以练习！', noQuestions: '没有题目可以练习！', notEnoughQuestions: total => `题库题目不足 ${total} 道，无法进行模拟考试。` },
+            en: { lang: 'en', langToggle: '中文', loading: 'Loading...', loginTitle: 'Login', registerTitle: 'Register', loginButton: 'Login', registerButton: 'Register', loginToggleText: 'Already have an account?', loginToggleLink: 'Login now', registerToggleText: 'Don\'t have an account?', registerToggleLink: 'Register now', logoutButton: 'Logout', welcomeUser: user => `Welcome, ${user}`, selectionTitle: 'Please Select a Library', mainTitle: libName => `Amateur Radio ${libName} Quiz`, seqButton: 'Sequential Practice', examButton: 'Simulated Exam', practiceWrongButton: c => `Practice Mistakes (${c})`, viewAllButton: 'View Question Bank', viewWrongButton: c => `View Mistakes (${c})`, resetWrongButton: 'Clear Progress', changeLibraryButton: 'Change Library', loadSuccess: c => `Successfully loaded ${c} questions.`, loadFail: 'Failed to load question bank. Please check your network or contact admin.', statsAnswered: c => `Answered: ${c}`, statsRemaining: c => `Remaining: ${c}`, statsCorrect: c => `Correct: ${c}`, statsIncorrect: c => `Incorrect: ${c}`, viewStatusButton: 'View Status', hideStatusButton: 'Hide Status', singleChoice: '[Single Choice]', multiChoice: '[Multiple Choice]', checkAnswer: 'Check Answer', nextQuestion: 'Next Question', examPrev: 'Previous', examNext: 'Next', examSubmit: 'Submit', practicePrevButton: 'Previous', confirmSubmit: 'Are you sure you want to submit the exam?', timeRemaining: 'Time Remaining', examResultTitle: 'Exam Result', resultPass: 'Pass', resultFail: 'Fail', resultDetails: (score, total, correct, incorrect, time) => `Score: ${score}/${total}<br>Correct: ${correct} | Incorrect: ${incorrect}<br>Time Spent: ${time}`, correct: 'Correct!', incorrectPrefix: 'Incorrect! The correct answer is: ', quizComplete: c => `Practice complete! You attempted ${c} questions.`, allQuestionsTitle: 'Full Question Bank', wrongQuestionsTitle: 'My Mistakes', emptyList: 'Nothing to show here!', backToMenu: 'Back to Menu', practiceBackButton: 'Back to Menu', correctAnswerLabel: 'Correct Answer', confirmReset: 'Are you sure you want to clear all progress for the current library? This action cannot be undone!', resetSuccess: 'Progress has been cleared.', noWrongQuestions: 'No mistakes to practice!', noQuestions: 'No questions to practice!', notEnoughQuestions: total => `Not enough questions for an exam (requires ${total}).` }
+        };
+
+        let allQuestions = [], currentQuestions = [], wrongQuestionIds = new Set();
+        let sequentialProgress = new Map();
+        let currentQuestionIndex = 0;
+        let currentMode = null, examTimer = null, remainingTime = 0, examAnswers = new Map();
+        let isPanelVisible = false;
+        let currentLang = 'zh', currentLibraryKey = null, currentUser = null;
+        let isAuthViewLogin = true;
+        const LANG_KEY = 'amateurRadioQuizLang', TOKEN_KEY = 'amateurRadioAuthToken';
+
+        let allViews, langSwitcher, examTimerDisplay, progressPanel, togglePanelBtn, practiceHeader, quizArea;
+        let actionButtons, authViewElements;
+
+        async function apiFetch(endpoint, options = {}) {
+            const token = localStorage.getItem(TOKEN_KEY);
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+            if (response.status === 401) { logout(); throw new Error('Unauthorized'); }
+            if (!response.ok) { const errorData = await response.json().catch(() => ({ error: 'Request failed' })); throw new Error(errorData.error || `HTTP error ${response.status}`); }
+            return response.json();
+        }
+
+        function showView(viewToShow, loadingTextKey = 'loading') {
+            allViews.forEach(v => v.style.display = 'none');
+            if (viewToShow.id === 'loading-view') document.getElementById('loading-text').textContent = translations[currentLang][loadingTextKey];
+            viewToShow.style.display = 'block';
+
+            const langSwitcherButton = document.getElementById('lang-switcher');
+            if (langSwitcherButton) langSwitcherButton.style.display = (viewToShow.id === 'quiz-area') ? 'none' : 'block';
+            
+            // FIX: Ensure quiz panel is hidden when leaving the quiz area
+            if (viewToShow.id !== 'quiz-area') document.getElementById('quiz-area').classList.remove('panel-visible');
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            document.documentElement.lang = t.lang;
+            document.title = t.selectionTitle;
+            langSwitcher.textContent = t.langToggle;
+            toggleAuthView(isAuthViewLogin);
+            document.getElementById('selection-title').textContent = t.selectionTitle;
+            document.querySelectorAll('#library-selection-view .btn[data-key]').forEach(btn => btn.textContent = LIBRARIES[btn.dataset.key].name[lang]);
+            if (currentLibraryKey) {
+                document.title = t.mainTitle(LIBRARIES[currentLibraryKey].name[lang]);
+                document.getElementById('main-title').textContent = t.mainTitle(LIBRARIES[currentLibraryKey].name[lang]);
+            }
+            if (currentUser) document.getElementById('user-info').textContent = t.welcomeUser(currentUser.username);
+            document.getElementById('start-sequential-btn').textContent = t.seqButton;
+            document.getElementById('start-exam-btn').textContent = t.examButton;
+            document.getElementById('reset-wrong-btn').textContent = t.resetWrongButton;
+            document.getElementById('view-all-btn').textContent = t.viewAllButton;
+            document.getElementById('change-library-btn').textContent = t.changeLibraryButton;
+            document.getElementById('logout-btn').textContent = t.logoutButton;
+            
+            actionButtons.check.textContent = t.checkAnswer;
+            actionButtons.next.textContent = t.nextQuestion;
+            actionButtons.examPrev.textContent = t.examPrev;
+            actionButtons.examNext.textContent = t.examNext;
+            actionButtons.examSubmit.textContent = t.examSubmit;
+            actionButtons.practicePrev.textContent = t.practicePrevButton;
+            document.getElementById('back-to-menu-btn').textContent = t.backToMenu;
+            actionButtons.practiceBack.textContent = t.practiceBackButton;
+            document.getElementById('result-back-btn').textContent = t.backToMenu;
+            document.getElementById('result-title').textContent = t.examResultTitle;
+            if (togglePanelBtn) togglePanelBtn.textContent = isPanelVisible ? t.hideStatusButton : t.viewStatusButton;
+
+            updateWrongButtons();
+        }
+
+        function toggleAuthView(isLogin) {
+            isAuthViewLogin = isLogin;
+            const t = translations[currentLang];
+            authViewElements.title.textContent = isLogin ? t.loginTitle : t.registerTitle;
+            authViewElements.submitBtn.textContent = isLogin ? t.loginButton : t.registerButton;
+            authViewElements.toggleText.textContent = isLogin ? t.registerToggleText : t.loginToggleText;
+            authViewElements.toggleLink.textContent = isLogin ? t.registerToggleLink : t.loginToggleLink;
+            authViewElements.error.textContent = '';
+        }
+
+        async function handleAuthSubmit() {
+            const username = authViewElements.username.value;
+            const password = authViewElements.password.value;
+            if (!username || !password) { authViewElements.error.textContent = "Username and password are required."; return; }
+            const endpoint = isAuthViewLogin ? '/api/login' : '/api/register';
+            try {
+                const data = await apiFetch(endpoint, { method: 'POST', body: JSON.stringify({ username, password }) });
+                if (isAuthViewLogin) {
+                    localStorage.setItem(TOKEN_KEY, data.token);
+                    await initializeUserSession();
+                } else {
+                    alert('Registration successful! Please log in.');
+                    toggleAuthView(true);
+                }
+            } catch (error) { authViewElements.error.textContent = error.message; }
+        }
+
+        async function initializeUserSession() {
+            if (!localStorage.getItem(TOKEN_KEY)) { showView(document.getElementById('auth-view')); return; }
+            showView(document.getElementById('loading-view'));
+            try {
+                currentUser = await apiFetch('/api/me');
+                document.getElementById('user-info').textContent = translations[currentLang].welcomeUser(currentUser.username);
+                showView(document.getElementById('library-selection-view'));
+            } catch (error) { logout(); }
+        }
+
+        function logout() {
+            localStorage.removeItem(TOKEN_KEY);
+            currentUser = null;
+            currentLibraryKey = null;
+            showView(document.getElementById('auth-view'));
+        }
+
+        async function selectLibrary(key) {
+            currentLibraryKey = key;
+            showView(document.getElementById('loading-view'));
+            setLanguage(currentLang);
+            document.querySelectorAll('#main-view .btn').forEach(b => b.disabled = true);
+            try {
+                const [questionsData, progressData] = await Promise.all([
+                    apiFetch(`/api/questions?category=${key}`),
+                    apiFetch(`/api/progress?category=${key}`)
+                ]);
+                if (!Array.isArray(questionsData)) throw new Error(`Data for questions is not an array!`);
+                allQuestions = questionsData.map(q => ({ ...q, shufflableOptions: Object.keys(q.Options).map(optKey => ({ key: optKey, text: q.Options[optKey], isCorrect: q.TrueAnswer.includes(optKey) })) }));
+                wrongQuestionIds = new Set(progressData.wrong_ids || []);
+                sequentialProgress = new Map(Object.entries(progressData.sequential || {}));
+                document.getElementById('status-message').textContent = translations[currentLang].loadSuccess(allQuestions.length);
+                document.querySelectorAll('#main-view .btn').forEach(b => b.disabled = false);
+                updateWrongButtons();
+                showView(document.getElementById('main-view'));
+            } catch (error) {
+                console.error("ERROR in selectLibrary:", error);
+                document.getElementById('status-message').innerHTML = `<strong>Error:</strong> ${error.message}`;
+                setTimeout(() => showView(document.getElementById('main-view')), 3000);
+            }
+        }
+
+        function updateWrongButtons() {
+            const count = wrongQuestionIds.size;
+            const t = translations[currentLang];
+            document.getElementById('start-wrong-btn').textContent = t.practiceWrongButton(count);
+            document.getElementById('view-wrong-btn').textContent = t.viewWrongButton(count);
+            document.getElementById('start-wrong-btn').disabled = count === 0;
+            document.getElementById('view-wrong-btn').disabled = count === 0;
+        }
+
+        async function startQuiz(mode) {
+            const t = translations[currentLang];
+            currentMode = mode;
+            Object.values(actionButtons).forEach(btn => btn.classList.add('hidden'));
+            examTimerDisplay.classList.add('hidden');
+            practiceHeader.classList.add('hidden');
+
+            if (mode === 'exam') {
+                showView(document.getElementById('loading-view'));
+                try {
+                    const examQuestions = await apiFetch('/api/exam/start', { method: 'POST', body: JSON.stringify({ category: currentLibraryKey }) });
+                    currentQuestions = examQuestions.map(q => ({ ...q, shufflableOptions: Object.keys(q.Options).map(optKey => ({ key: optKey, text: q.Options[optKey], isCorrect: q.TrueAnswer.includes(optKey) })) }));
+                    currentQuestionIndex = 0;
+                    examAnswers.clear();
+                    actionButtons.examPrev.classList.remove('hidden');
+                    actionButtons.examSubmit.classList.remove('hidden');
+                    actionButtons.examNext.classList.remove('hidden');
+                    examTimerDisplay.classList.remove('hidden');
+                    startExamTimer();
+                    
+                    // FIX: Generate and show panel for exam mode
+                    generateProgressPanel();
+                    quizArea.classList.add('panel-visible');
+
+                } catch(error) {
+                    alert(error.message);
+                    showView(document.getElementById('main-view'));
+                    return;
+                }
+            } else {
+                quizArea.classList.remove('panel-visible');
+                actionButtons.practiceBack.classList.remove('hidden');
+                actionButtons.practicePrev.classList.remove('hidden');
+                actionButtons.check.classList.remove('hidden');
+                actionButtons.next.classList.remove('hidden');
+                stopExamTimer();
+                if (mode === 'sequential') {
+                    currentQuestions = [...allQuestions];
+                    const firstUnansweredIndex = currentQuestions.findIndex(q => !sequentialProgress.has(q.J_ID));
+                    currentQuestionIndex = firstUnansweredIndex === -1 ? 0 : firstUnansweredIndex;
+                    practiceHeader.classList.remove('hidden');
+                    isPanelVisible = false;
+                    togglePanelBtn.textContent = t.viewStatusButton;
+                    generateProgressPanel();
+                    updateStatsDisplay();
+                } else {
+                    if (wrongQuestionIds.size === 0) { alert(t.noWrongQuestions); return; }
+                    currentQuestions = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID));
+                    currentQuestionIndex = 0;
+                }
+            }
+            if (currentQuestions.length === 0) { alert(t.noQuestions); return; }
+            showView(document.getElementById('quiz-area'));
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex < 0 || currentQuestionIndex >= currentQuestions.length) return;
+            const t = translations[currentLang];
+            document.getElementById('feedback').classList.add('hidden');
+            if (currentMode === 'exam') {
+                actionButtons.examPrev.disabled = currentQuestionIndex === 0;
+                actionButtons.examNext.disabled = currentQuestionIndex === currentQuestions.length - 1;
+            } else {
+                actionButtons.practicePrev.disabled = currentQuestionIndex === 0;
+                actionButtons.next.disabled = currentQuestionIndex === currentQuestions.length - 1;
+                actionButtons.check.disabled = sequentialProgress.has(currentQuestions[currentQuestionIndex].J_ID);
+            }
+            const question = currentQuestions[currentQuestionIndex];
+            const isMultiChoice = question.TrueAnswer.length > 1;
+            const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice;
+            document.getElementById('question').innerHTML = `<span class="question-type">${questionTypeTag}</span>${question.Question}`;
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            let optionsToDisplay = [...question.shufflableOptions].sort(() => Math.random() - 0.5);
+            const savedAnswerTexts = currentMode === 'exam' ? (examAnswers.get(question.J_ID) || []) : [];
+            optionsToDisplay.forEach((opt, index) => {
+                const displayLetter = String.fromCharCode(65 + index);
+                const optionLabel = document.createElement('label');
+                optionLabel.className = 'option';
+                const input = document.createElement('input');
+                input.type = isMultiChoice ? 'checkbox' : 'radio';
+                input.name = 'option';
+                input.value = opt.text;
+                input.dataset.key = opt.key;
+                input.dataset.isCorrect = opt.isCorrect;
+                if (currentMode === 'exam' && savedAnswerTexts.includes(opt.text)) input.checked = true;
+                optionLabel.appendChild(input);
+                optionLabel.appendChild(document.createTextNode(` ${displayLetter}. ${opt.text}`));
+                optionsDiv.appendChild(optionLabel);
+            });
+            updatePanelHighlight();
+            if (currentMode === 'sequential' && sequentialProgress.has(question.J_ID)) {
+                checkAnswer(true);
+            }
+        }
+        
+        function saveExamAnswer() {
+            if (currentMode !== 'exam') return;
+            const question = currentQuestions[currentQuestionIndex];
+            if (!question) return;
+            const selectedTexts = Array.from(document.querySelectorAll('#options input:checked')).map(i => i.value);
+            examAnswers.set(question.J_ID, selectedTexts);
+            // FIX: Update exam panel to show answered status
+            const panelBtn = document.querySelector(`.panel-btn[data-index="${currentQuestionIndex}"]`);
+            if (panelBtn) panelBtn.classList.add('answered');
+        }
+
+        function jumpToQuestion(index) { currentQuestionIndex = index; displayQuestion(); }
+
+        async function checkAnswer(isReview = false) {
+            const t = translations[currentLang];
+            const feedbackDiv = document.getElementById('feedback');
+            const question = currentQuestions[currentQuestionIndex];
+            if (!isReview) {
+                const selectedKeys = Array.from(document.querySelectorAll('#options input:checked')).map(i => i.dataset.key);
+                try {
+                    const result = await apiFetch('/api/check-answer', { method: 'POST', body: JSON.stringify({ question_jid: question.J_ID, user_answer: selectedKeys, category: currentLibraryKey }) });
+                    const status = result.is_correct ? 'correct' : 'incorrect';
+                    sequentialProgress.set(question.J_ID, status);
+                    if (result.is_correct) wrongQuestionIds.delete(question.J_ID); else wrongQuestionIds.add(question.J_ID);
+                    updateWrongButtons();
+                    updateStatsDisplay();
+                    const panelBtn = document.querySelector(`.panel-btn[data-index="${currentQuestionIndex}"]`);
+                    if (panelBtn) { panelBtn.className = `panel-btn ${status} active`; }
+                } catch(error) { alert('Failed to check answer: ' + error.message); return; }
+            }
+            const isFullyCorrect = sequentialProgress.get(question.J_ID) === 'correct';
+            feedbackDiv.classList.remove('hidden');
+            if (isFullyCorrect) {
+                feedbackDiv.textContent = t.correct;
+                feedbackDiv.className = 'feedback-correct';
+            } else {
+                const correctOptionsText = question.shufflableOptions.filter(opt => opt.isCorrect).map(opt => opt.text).join(', ');
+                feedbackDiv.textContent = t.incorrectPrefix + correctOptionsText;
+                feedbackDiv.className = 'feedback-incorrect';
+            }
+            document.querySelectorAll('#options input').forEach(input => {
+                const label = input.parentElement;
+                if (input.dataset.isCorrect === 'true') label.classList.add('correct');
+                else if (input.checked) label.classList.add('incorrect');
+                input.disabled = true;
+            });
+            actionButtons.check.disabled = true;
+        }
+
+        function startExamTimer() { stopExamTimer(); remainingTime = EXAM_CONFIG.DURATION; const t = translations[currentLang]; const updateTimer = () => { const minutes = Math.floor(remainingTime / 60); const seconds = remainingTime % 60; examTimerDisplay.textContent = `${t.timeRemaining}: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; if (remainingTime <= 0) submitExam(true); remainingTime--; }; updateTimer(); examTimer = setInterval(updateTimer, 1000); }
+        function stopExamTimer() { clearInterval(examTimer); examTimer = null; }
+
+        async function submitExam(isAuto = false) {
+            const t = translations[currentLang];
+            if (!isAuto && !confirm(t.confirmSubmit)) return;
+            stopExamTimer();
+            const answersToSubmit = {};
+            currentQuestions.forEach(q => {
+                const savedTexts = examAnswers.get(q.J_ID) || [];
+                const selectedKeys = [];
+                q.shufflableOptions.forEach(opt => { if (savedTexts.includes(opt.text)) selectedKeys.push(opt.key); });
+                answersToSubmit[q.J_ID] = selectedKeys;
+            });
+            try {
+                const result = await apiFetch('/api/exam/submit', { method: 'POST', body: JSON.stringify({ answers: answersToSubmit, category: currentLibraryKey }) });
+                const isPass = result.score >= EXAM_CONFIG.PASS_SCORE;
+                const timeSpent = EXAM_CONFIG.DURATION - (remainingTime + 1);
+                const minutes = Math.floor(timeSpent / 60);
+                const seconds = timeSpent % 60;
+                const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const resultStatus = document.getElementById('result-status');
+                resultStatus.textContent = isPass ? t.resultPass : t.resultFail;
+                resultStatus.className = `result-status ${isPass ? 'pass' : 'fail'}`;
+                document.getElementById('result-details').innerHTML = t.resultDetails(result.score, EXAM_CONFIG.TOTAL_QUESTIONS, result.score, EXAM_CONFIG.TOTAL_QUESTIONS - result.score, timeStr);
+                showView(document.getElementById('exam-result-view'));
+            } catch (error) { alert('Failed to submit exam: ' + error.message); }
+        }
+
+        function displayListView(mode) { const t = translations[currentLang]; let questionsToDisplay; const listViewTitle = document.getElementById('list-view-title'); if (mode === 'all') { listViewTitle.textContent = t.allQuestionsTitle; questionsToDisplay = allQuestions; } else { listViewTitle.textContent = t.wrongQuestionsTitle; questionsToDisplay = allQuestions.filter(q => wrongQuestionIds.has(q.J_ID)); } const listViewContent = document.getElementById('list-view-content'); if (questionsToDisplay.length === 0) { listViewContent.innerHTML = `<p style="text-align:center; color:#777; padding: 20px 0;">${t.emptyList}</p>`; } else { listViewContent.innerHTML = questionsToDisplay.map((q, index) => { const isMultiChoice = q.TrueAnswer.length > 1; const questionTypeTag = isMultiChoice ? t.multiChoice : t.singleChoice; const correctTexts = q.TrueAnswer.split('').map(key => `${key}. ${q.Options[key]}`).join('; '); const optionsHtml = Object.entries(q.Options).map(([key, value]) => `<p>${key}. ${value}</p>`).join(''); return `<div class="list-item"><p class="list-item-question"><strong>${index + 1}. </strong><span class="question-type">${questionTypeTag}</span>${q.Question}</p><div class="list-item-options">${optionsHtml}</div><p class="list-item-answer">${t.correctAnswerLabel}: ${correctTexts}</p></div>`; }).join(''); } showView(document.getElementById('list-view')); }
+        
+        function generateProgressPanel() {
+            progressPanel.innerHTML = '';
+            currentQuestions.forEach((q, index) => {
+                const btn = document.createElement('button');
+                btn.textContent = index + 1;
+                btn.dataset.index = index;
+                let status = 'unanswered';
+                if (currentMode === 'sequential') {
+                    status = sequentialProgress.get(q.J_ID) || 'unanswered';
+                } else if (currentMode === 'exam') {
+                    status = examAnswers.has(q.J_ID) ? 'answered' : 'unanswered';
+                }
+                btn.className = `panel-btn ${status}`;
+                btn.addEventListener('click', () => jumpToQuestion(index));
+                progressPanel.appendChild(btn);
+            });
+        }
+
+        function updatePanelHighlight() {
+            // FIX: Allow this function to work in both sequential and exam modes
+            if (currentMode !== 'sequential' && currentMode !== 'exam') return;
+            document.querySelectorAll('#progress-panel .panel-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.index) === currentQuestionIndex);
+            });
+        }
+
+        function updateStatsDisplay() { const t = translations[currentLang]; const answeredCount = sequentialProgress.size; const correctCount = [...sequentialProgress.values()].filter(v => v === 'correct').length; const incorrectCount = answeredCount - correctCount; const remainingCount = allQuestions.length - answeredCount; document.getElementById('stats-answered').textContent = t.statsAnswered(answeredCount); document.getElementById('stats-remaining').textContent = t.statsRemaining(remainingCount); document.getElementById('stats-correct').textContent = t.statsCorrect(correctCount); document.getElementById('stats-incorrect').textContent = t.statsIncorrect(incorrectCount); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            allViews = document.querySelectorAll('.view');
+            langSwitcher = document.getElementById('lang-switcher');
+            examTimerDisplay = document.getElementById('exam-timer');
+            progressPanel = document.getElementById('progress-panel');
+            togglePanelBtn = document.getElementById('toggle-panel-btn');
+            practiceHeader = document.getElementById('practice-header');
+            quizArea = document.getElementById('quiz-area');
+            authViewElements = { view: document.getElementById('auth-view'), title: document.getElementById('auth-title'), username: document.getElementById('username-input'), password: document.getElementById('password-input'), submitBtn: document.getElementById('auth-submit-btn'), error: document.getElementById('auth-error'), toggleText: document.getElementById('auth-toggle-text'), toggleLink: document.getElementById('auth-toggle-link') };
+            actionButtons = { practiceBack: document.getElementById('practice-back-btn'), practicePrev: document.getElementById('practice-prev-btn'), check: document.getElementById('check-btn'), next: document.getElementById('next-btn'), examPrev: document.getElementById('exam-prev-btn'), examSubmit: document.getElementById('exam-submit-btn'), examNext: document.getElementById('exam-next-btn') };
+
+            const savedLang = localStorage.getItem(LANG_KEY) || 'zh';
+            setLanguage(savedLang);
+            initializeUserSession();
+
+            langSwitcher.addEventListener('click', () => { const newLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem(LANG_KEY, newLang); setLanguage(newLang); });
+            authViewElements.submitBtn.addEventListener('click', handleAuthSubmit);
+            authViewElements.toggleLink.addEventListener('click', () => toggleAuthView(!isAuthViewLogin));
+            document.querySelectorAll('#library-selection-view .btn[data-key]').forEach(btn => btn.addEventListener('click', () => selectLibrary(btn.dataset.key)));
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            document.getElementById('change-library-btn').addEventListener('click', () => showView(document.getElementById('library-selection-view')));
+            document.getElementById('start-sequential-btn').addEventListener('click', () => startQuiz('sequential'));
+            document.getElementById('start-exam-btn').addEventListener('click', () => startQuiz('exam'));
+            document.getElementById('start-wrong-btn').addEventListener('click', () => startQuiz('wrong'));
+            document.getElementById('view-all-btn').addEventListener('click', () => displayListView('all'));
+            document.getElementById('view-wrong-btn').addEventListener('click', () => displayListView('wrong'));
+            document.getElementById('back-to-menu-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
+            actionButtons.practiceBack.addEventListener('click', () => showView(document.getElementById('main-view')));
+            document.getElementById('result-back-btn').addEventListener('click', () => showView(document.getElementById('main-view')));
+            document.getElementById('reset-wrong-btn').addEventListener('click', async () => { const t = translations[currentLang]; if (confirm(t.confirmReset)) { wrongQuestionIds.clear(); sequentialProgress.clear(); updateWrongButtons(); alert(t.resetSuccess); } });
+            actionButtons.check.addEventListener('click', () => checkAnswer(false));
+            actionButtons.practicePrev.addEventListener('click', () => jumpToQuestion(currentQuestionIndex - 1));
+            actionButtons.next.addEventListener('click', () => jumpToQuestion(currentQuestionIndex + 1));
+            document.getElementById('options').addEventListener('change', saveExamAnswer);
+            actionButtons.examPrev.addEventListener('click', () => jumpToQuestion(currentQuestionIndex - 1));
+            actionButtons.examNext.addEventListener('click', () => jumpToQuestion(currentQuestionIndex + 1));
+            actionButtons.examSubmit.addEventListener('click', () => submitExam(false));
+            togglePanelBtn.addEventListener('click', () => { isPanelVisible = !isPanelVisible; quizArea.classList.toggle('panel-visible', isPanelVisible); if (window.innerWidth < 992) { document.getElementById('stats-container').classList.toggle('hidden', isPanelVisible); progressPanel.style.display = isPanelVisible ? 'grid' : 'none'; } togglePanelBtn.textContent = isPanelVisible ? translations[currentLang].hideStatusButton : translations[currentLang].viewStatusButton; });
+        });
+    </script>
+</body>
+</html>
