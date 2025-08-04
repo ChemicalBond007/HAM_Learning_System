@@ -66,16 +66,17 @@ def get_questions_api():
     category = request.args.get('category')
     if not category:
         return jsonify({"error": "Category is required"}), 400
-        
-    # 从数据库获取问题，但不返回答案
-    questions = db.get_questions(category, projection={"TrueAnswer": 0, "Options": 0})
-    # 为了演示，这里返回了全部信息。在真实生产中，可以只返回问题和选项。
-    questions = db.get_questions(category)
-    # 将 ObjectId 转换为字符串
-    for q in questions:
-        q['_id'] = str(q['_id'])
-        
-    return jsonify(questions)
+    
+    try:
+        # 从数据库获取问题，但不返回答案，修复了之前逻辑错误和答案泄露风险
+        questions = db.get_questions(category, projection={"TrueAnswer": 0})
+        # 将 ObjectId 转换为字符串
+        for q in questions:
+            q['_id'] = str(q['_id'])
+        return jsonify(questions)
+    except Exception as e:
+        app.logger.error(f"Error fetching questions for category {category}: {e}")
+        return jsonify({"error": "An unexpected error occurred while fetching questions."}), 500
 
 @app.route('/api/progress', methods=['GET'])
 @token_required
@@ -84,8 +85,12 @@ def get_progress_api():
     if not category:
         return jsonify({"error": "Category is required"}), 400
         
-    progress = db.get_user_progress(g.current_user['_id'], category)
-    return jsonify(progress)
+    try:
+        progress = db.get_user_progress(g.current_user['_id'], category)
+        return jsonify(progress)
+    except Exception as e:
+        app.logger.error(f"Error fetching progress for user {g.current_user.get('_id')}: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 @app.route('/api/check-answer', methods=['POST'])
 @token_required
@@ -126,23 +131,32 @@ def check_answer_api():
 def start_exam():
     data = request.get_json()
     category = data.get('category')
+    if not category:
+        return jsonify({"error": "Category is required"}), 400
+        
     total_questions = 30 # 考试题目数量
     
-    all_q_ids = db.get_questions(category, projection={"J_ID": 1, "_id": 0})
-    if len(all_q_ids) < total_questions:
-        return jsonify({"error": f"Not enough questions in category {category}"}), 400
+    try:
+        all_q_ids = db.get_questions(category, projection={"J_ID": 1, "_id": 0})
+        if len(all_q_ids) < total_questions:
+            return jsonify({"error": f"Not enough questions in category {category}"}), 400
+            
+        exam_q_ids = [q['J_ID'] for q in random.sample(all_q_ids, total_questions)]
         
-    exam_q_ids = [q['J_ID'] for q in random.sample(all_q_ids, total_questions)]
-    
-    exam_questions = []
-    for jid in exam_q_ids:
-        q = db.get_question_by_jid(jid)
-        q['_id'] = str(q['_id']) # 序列化 ObjectId
-        exam_questions.append(q)
+        exam_questions = []
+        for jid in exam_q_ids:
+            q = db.get_question_by_jid(jid)
+            if q:
+                q['_id'] = str(q['_id']) # 序列化 ObjectId
+                del q['TrueAnswer'] # 安全起见，不将答案发送给客户端
+                exam_questions.append(q)
 
-    # 在真实应用中，你会创建一个考试会话(session)存入数据库
-    # 这里为了简化，直接返回题目列表
-    return jsonify(exam_questions)
+        # 在真实应用中，你会创建一个考试会话(session)存入数据库
+        # 这里为了简化，直接返回题目列表
+        return jsonify(exam_questions)
+    except Exception as e:
+        app.logger.error(f"Error starting exam for category {category}: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 @app.route('/api/exam/submit', methods=['POST'])
 @token_required
@@ -150,31 +164,37 @@ def submit_exam():
     data = request.get_json()
     answers = data.get('answers', {}) # 格式: {"J_ID_1": ["A"], "J_ID_2": ["B", "C"]}
     category = data.get('category')
+    if not category:
+        return jsonify({"error": "Category is required"}), 400
 
-    score = 0
-    results = []
-    for jid, user_ans in answers.items():
-        question = db.get_question_by_jid(jid)
-        if question:
-            correct_answer_keys = sorted(list(question['TrueAnswer']))
-            is_correct = sorted(user_ans) == correct_answer_keys
-            if is_correct:
-                score += 1
-            
-            results.append({
-                "question_jid": jid,
-                "is_correct": is_correct,
-                "user_answer": user_ans,
-                "correct_answer": question['TrueAnswer']
-            })
-            # 提交考试后，同样更新错题集
-            db.update_user_progress(g.current_user['_id'], category, jid, is_correct)
-            
-    return jsonify({
-        "score": score,
-        "total": len(answers),
-        "results": results
-    })
+    try:
+        score = 0
+        results = []
+        for jid, user_ans in answers.items():
+            question = db.get_question_by_jid(jid)
+            if question:
+                correct_answer_keys = sorted(list(question['TrueAnswer']))
+                is_correct = sorted(user_ans) == correct_answer_keys
+                if is_correct:
+                    score += 1
+                
+                results.append({
+                    "question_jid": jid,
+                    "is_correct": is_correct,
+                    "user_answer": user_ans,
+                    "correct_answer": question['TrueAnswer']
+                })
+                # 提交考试后，同样更新错题集
+                db.update_user_progress(g.current_user['_id'], category, jid, is_correct)
+                
+        return jsonify({
+            "score": score,
+            "total": len(answers),
+            "results": results
+        })
+    except Exception as e:
+        app.logger.error(f"Error submitting exam for category {category}: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 if __name__ == '__main__':
     # 确保在运行前设置了 .env 文件
