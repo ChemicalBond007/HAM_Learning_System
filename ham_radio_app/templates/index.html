@@ -307,7 +307,14 @@
                     apiFetch(`/api/progress?category=${key}`)
                 ]);
                 if (!Array.isArray(questionsData)) throw new Error(`Data for questions is not an array!`);
-                allQuestions = questionsData.map(q => ({ ...q, shufflableOptions: Object.keys(q.Options).map(optKey => ({ key: optKey, text: q.Options[optKey], isCorrect: q.TrueAnswer.includes(optKey) })) }));
+                allQuestions = questionsData.map(q => ({ 
+                    ...q, 
+                    shufflableOptions: Object.keys(q.Options).map(optKey => ({ 
+                        key: optKey, 
+                        text: q.Options[optKey], 
+                        isCorrect: Array.isArray(q.TrueAnswer) && q.TrueAnswer.includes(optKey) 
+                    })) 
+                }));
                 wrongQuestionIds = new Set(progressData.wrong_ids || []);
                 sequentialProgress = new Map(Object.entries(progressData.sequential || {}));
                 document.getElementById('status-message').textContent = translations[currentLang].loadSuccess(allQuestions.length);
