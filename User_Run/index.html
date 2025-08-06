@@ -84,6 +84,9 @@
             gap: 8px; max-height: 180px; overflow-y: auto;
             background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px;
         }
+        #quiz-area.panel-visible #progress-panel {
+            display: grid;
+        }
         .panel-btn {
             padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;
             cursor: pointer; transition: all 0.2s ease;
@@ -106,12 +109,11 @@
         @media (min-width: 992px) {
             #quiz-body-wrapper { display: flex; }
             #progress-panel {
-                display: grid; /* Always grid on desktop */
-                width: 0; opacity: 0; overflow: hidden; transition: all 0.3s ease;
+                display: none; width: 0; opacity: 0; overflow: hidden; transition: all 0.3s ease;
                 padding: 0; margin-left: 0; max-height: 500px;
             }
             #quiz-area.panel-visible #progress-panel {
-                width: 280px; opacity: 1; padding: 15px; margin-left: 20px;
+                display: grid; width: 280px; opacity: 1; padding: 15px; margin-left: 20px; overflow-y: auto;
             }
         }
 
@@ -494,7 +496,12 @@
                 const btn = document.createElement('button');
                 btn.textContent = index + 1;
                 btn.dataset.index = index;
-                const status = sequentialProgress.get(q.J_ID) || 'unanswered';
+                let status = 'unanswered';
+                if (currentMode === 'sequential') {
+                    status = sequentialProgress.get(q.J_ID) || 'unanswered';
+                } else if (currentMode === 'exam') {
+                    status = examAnswers.has(q.J_ID) ? 'answered' : 'unanswered';
+                }
                 btn.className = `panel-btn ${status}`;
                 btn.addEventListener('click', () => jumpToQuestion(index));
                 progressPanel.appendChild(btn);
@@ -502,9 +509,10 @@
         }
 
         function updatePanelHighlight() {
-            if (currentMode !== 'sequential') return;
+            if (currentMode !== 'sequential' && currentMode !== 'exam') return;
             document.querySelectorAll('#progress-panel .panel-btn').forEach(btn => {
-                btn.classList.toggle('active', parseInt(btn.dataset.index) === currentQuestionIndex);
+                const idx = parseInt(btn.dataset.index);
+                btn.classList.toggle('active', idx === currentQuestionIndex);
             });
         }
 
@@ -548,6 +556,18 @@
                 input.name = 'option';
                 input.value = opt.text;
                 input.dataset.isCorrect = opt.isCorrect;
+                // 顺序练习：只有已答题目才显示选项状态和禁用
+                if (currentMode === 'sequential') {
+                    const status = sequentialProgress.get(question.J_ID);
+                    if (status === 'correct' || status === 'incorrect') {
+                        // 已答题目，显示选项状态并禁用
+                        input.disabled = true;
+                        // 选项高亮
+                        if (input.dataset.isCorrect === 'true') optionLabel.classList.add('correct');
+                        else if (input.checked) optionLabel.classList.add('incorrect');
+                    }
+                }
+                // 模拟考试：显示已选项
                 if (currentMode === 'exam' && savedAnswerTexts.includes(opt.text)) {
                     input.checked = true;
                 }
@@ -558,7 +578,8 @@
 
             if (currentMode === 'sequential') {
                 updatePanelHighlight();
-                if (sequentialProgress.has(question.J_ID)) {
+                // 只有已答题目才自动显示答案
+                if (sequentialProgress.get(question.J_ID) === 'correct' || sequentialProgress.get(question.J_ID) === 'incorrect') {
                     checkAnswer(true);
                 }
             }
@@ -574,14 +595,22 @@
         function checkAnswer(isReview = false) {
             const t = translations[currentLang];
             const allInputs = document.querySelectorAll('#options input');
-            const isFullyCorrect = Array.from(allInputs).every(input => input.checked === (input.dataset.isCorrect === 'true'));
             const feedbackDiv = document.getElementById('feedback');
             const question = currentQuestions[currentQuestionIndex];
+            let isFullyCorrect;
 
-            if (!isReview) {
+            if (isReview) {
+                // For reviews, correctness is based on stored progress, not current input state.
+                isFullyCorrect = sequentialProgress.get(question.J_ID) === 'correct';
+            } else {
+                // For a new answer, calculate correctness from inputs.
+                isFullyCorrect = Array.from(allInputs).every(input => input.checked === (input.dataset.isCorrect === 'true'));
+                
+                // Save the result
                 const status = isFullyCorrect ? 'correct' : 'incorrect';
                 sequentialProgress.set(question.J_ID, status);
                 saveSequentialProgress();
+                
                 if (isFullyCorrect) {
                     if (wrongQuestionIds.has(question.J_ID)) wrongQuestionIds.delete(question.J_ID);
                 } else {
@@ -589,12 +618,14 @@
                 }
                 saveWrongQuestions();
                 updateStatsDisplay();
+                
                 const panelBtn = document.querySelector(`.panel-btn[data-index="${currentQuestionIndex}"]`);
                 if (panelBtn) {
                     panelBtn.className = `panel-btn ${status} active`;
                 }
             }
 
+            // Display feedback
             feedbackDiv.classList.remove('hidden');
             feedbackDiv.textContent = '';
             if (isFullyCorrect) {
@@ -609,10 +640,14 @@
                 feedbackDiv.className = 'feedback-incorrect';
             }
             
+            // Update option styles and disable inputs
             allInputs.forEach(input => {
                 const label = input.parentElement;
-                if (input.dataset.isCorrect === 'true') label.classList.add('correct');
-                else if (input.checked) label.classList.add('incorrect');
+                if (input.dataset.isCorrect === 'true') {
+                    label.classList.add('correct');
+                } else if (input.checked && !isReview) { // Only highlight user's incorrect choice on the initial check
+                    label.classList.add('incorrect');
+                }
                 input.disabled = true;
             });
             actionButtons.check.disabled = true;
